@@ -107,6 +107,78 @@ function formatAssignedUserCount(machineInstance) {
   return assignedUserCount + ' ' + label;
 }
 
+function getAssignedUsers(machineInstance) {
+  if (!machineInstance || !Array.isArray(machineInstance.assigned_users)) {
+    return [];
+  }
+
+  return machineInstance.assigned_users;
+}
+
+function formatAssignedDuration(durationSeconds) {
+  var totalSeconds = Math.max(0, Math.floor(Number(durationSeconds) || 0));
+  var days = Math.floor(totalSeconds / 86400);
+  var hours = Math.floor((totalSeconds % 86400) / 3600);
+  var minutes = Math.floor((totalSeconds % 3600) / 60);
+  var seconds = totalSeconds % 60;
+
+  if (days > 0) {
+    return days + 'd ' + hours + 'h';
+  }
+  if (hours > 0) {
+    return hours + 'h ' + minutes + 'm';
+  }
+  if (minutes > 0) {
+    return minutes + 'm ' + seconds + 's';
+  }
+  return seconds + 's';
+}
+
+function buildAssignmentsTableMarkup(machineInstance) {
+  var assignedUsers = getAssignedUsers(machineInstance);
+  var tableBodyMarkup;
+
+  if (assignedUsers.length === 0) {
+    tableBodyMarkup = '<div class="health-assigned-users-empty">No current holders</div>';
+  } else {
+    tableBodyMarkup = '' +
+      '<div class="health-assignments-table-wrap">' +
+        '<table class="health-assignments-table">' +
+          '<thead>' +
+            '<tr>' +
+              '<th scope="col">Username</th>' +
+              '<th scope="col">Access</th>' +
+              '<th scope="col">Assigned for</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' +
+            assignedUsers.map(function(assignedUser) {
+              var accessLabel = assignedUser.shared_access_enabled ? 'Shared' : 'Exclusive';
+              return '' +
+                '<tr>' +
+                  '<td>' + escapeHtml(assignedUser.username || 'Unknown') + '</td>' +
+                  '<td><span class="health-assignment-mode ' + (assignedUser.shared_access_enabled ? 'is-shared' : 'is-exclusive') + '">' + escapeHtml(accessLabel) + '</span></td>' +
+                  '<td>' + escapeHtml(formatAssignedDuration(assignedUser.assigned_duration_seconds)) + '</td>' +
+                '</tr>';
+            }).join('') +
+          '</tbody>' +
+        '</table>' +
+      '</div>';
+  }
+
+  return '' +
+    '<div class="health-assignments-panel">' +
+      '<div class="health-assignments-header">' +
+        '<div>' +
+          '<div class="health-assignments-title">Assignments</div>' +
+          '<div class="health-assignments-copy">Current holders on this node.</div>' +
+        '</div>' +
+        '<div class="health-assignments-count">' + escapeHtml(formatAssignedUserCount(machineInstance)) + '</div>' +
+      '</div>' +
+      tableBodyMarkup +
+    '</div>';
+}
+
 function buildNodeHeaderBadges(machine, machineInstance, isRecommended) {
   var potentiallyUnavailable = isMachineInstancePotentiallyUnavailable(machine, machineInstance);
   var badgeMarkup = '';
@@ -144,6 +216,14 @@ function buildLaunchSummaryCardStyle(snapshot) {
     '--launch-summary-shadow:' + getRgbaString(colorChannels, 0.16) + ';';
 }
 
+function buildLaunchSummaryStat(label, value, extraClassName) {
+  return '' +
+    '<div class="launch-summary-stat' + (extraClassName ? ' ' + extraClassName : '') + '">' +
+      '<div class="launch-summary-stat-label">' + escapeHtml(label) + '</div>' +
+      '<div class="launch-summary-stat-value">' + escapeHtml(value) + '</div>' +
+    '</div>';
+}
+
 function renderLaunchSummaryCard(machine) {
   var summaryContainer = document.getElementById('launchSummaryCard');
   var selectedMachineInstance;
@@ -152,6 +232,7 @@ function renderLaunchSummaryCard(machine) {
   var fitnessCopy = 'Unavailable';
   var availabilityCopy = '';
   var sharingCopy = '';
+  var assignedPeopleCopy = '';
 
   if (!summaryContainer) {
     return;
@@ -180,6 +261,7 @@ function renderLaunchSummaryCard(machine) {
   } else {
     sharingCopy = getSharedAccessRequested(machine) ? 'Enabled' : 'Disabled';
   }
+  assignedPeopleCopy = formatAssignedUserCount(selectedMachineInstance);
 
   summaryContainer.classList.add('is-populated');
   summaryContainer.setAttribute('style', buildLaunchSummaryCardStyle(snapshot));
@@ -187,13 +269,16 @@ function renderLaunchSummaryCard(machine) {
     '<div class="mlhub-card-header">' +
       '<div>' +
         '<h3 class="mlhub-card-title">Launch summary</h3>' +
-        '<p class="mlhub-card-copy">This is the machine instance that will receive your session if you start now.</p>' +
+        '<p class="mlhub-card-copy">These are the launch settings that would be used if you start now.</p>' +
       '</div>' +
     '</div>' +
-    '<div class="launch-summary-line"><strong>Node type:</strong> ' + escapeHtml(machine.codename || 'Unnamed') + '</div>' +
-    '<div class="launch-summary-line"><strong>Instance:</strong> ' + escapeHtml(displayHostname(selectedMachineInstance)) + '</div>' +
-    '<div class="launch-summary-line"><strong>Session sharing:</strong> ' + escapeHtml(sharingCopy) + '</div>' +
-    '<div class="launch-summary-line"><strong>Current fitness:</strong> ' + escapeHtml(fitnessCopy) + '</div>' +
+    '<div class="launch-summary-grid">' +
+      buildLaunchSummaryStat('Machine type', machine.codename || 'Unnamed', 'is-wide') +
+      buildLaunchSummaryStat('Instance', displayHostname(selectedMachineInstance), 'is-wide') +
+      buildLaunchSummaryStat('Session sharing', sharingCopy, '') +
+      buildLaunchSummaryStat('Fitness', fitnessCopy, '') +
+      buildLaunchSummaryStat('People assigned', assignedPeopleCopy, '') +
+    '</div>' +
     '<div class="launch-summary-copy">The launch target is currently selected from the visible nodes for this machine profile.' + escapeHtml(availabilityCopy) + '</div>';
 }
 
@@ -231,13 +316,12 @@ function buildNodeHistoryMarkup(machineInstance) {
 
 function buildNodeDetails(machine, snapshot, machineInstance) {
   var historyMarkup = buildNodeHistoryMarkup(machineInstance);
+  var assignmentsMarkup = buildAssignmentsTableMarkup(machineInstance);
   if (!snapshot) {
     return '' +
-      '<div class="health-detail-grid">' +
-        '<div class="health-detail-card"><span class="health-detail-label">Assignments</span><span class="health-detail-value">' + escapeHtml(formatAssignedUserCount(machineInstance)) + '</span></div>' +
-      '</div>' +
       '<div class="health-empty">This node is offline or has not reported telemetry yet.</div>' +
-      historyMarkup;
+      historyMarkup +
+      assignmentsMarkup;
   }
 
   var cpuText = snapshot.cpu_usage_pct !== null && snapshot.cpu_usage_pct !== undefined
@@ -269,12 +353,12 @@ function buildNodeDetails(machine, snapshot, machineInstance) {
   return '' +
       '<div class="health-detail-grid">' +
         '<div class="health-detail-card"><span class="health-detail-label">Fitness</span><span class="health-detail-value">' + escapeHtml(fitnessText) + '</span></div>' +
-        '<div class="health-detail-card"><span class="health-detail-label">Assignments</span><span class="health-detail-value">' + escapeHtml(formatAssignedUserCount(machineInstance)) + '</span></div>' +
         '<div class="health-detail-card"><span class="health-detail-label">RAM used</span><span class="health-detail-value">' + escapeHtml(ramText) + '</span></div>' +
         '<div class="health-detail-card"><span class="health-detail-label">CPU usage</span><span class="health-detail-value">' + escapeHtml(cpuText) + '</span></div>' +
       '</div>' +
       '<div class="health-gpu-list">' + gpuInfo + '</div>' +
       historyMarkup +
+      assignmentsMarkup +
       errorMarkup;
 }
 

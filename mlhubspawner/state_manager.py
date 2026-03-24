@@ -7,6 +7,8 @@ def spawner_load_state(spawner_self, state):
         spawner_self.state_notebook_port = state["notebook_port"]
     if "shared_access_enabled" in state:
         spawner_self.state_shared_access_enabled = state["shared_access_enabled"]
+    if "allocation_started_at" in state:
+        spawner_self.state_allocation_started_at = state["allocation_started_at"]
 
     machine_registry = getattr(type(spawner_self), "_machine_registry", None)
     if machine_registry is None or not spawner_self.state_machine_instance_id:
@@ -34,6 +36,7 @@ def spawner_load_state(spawner_self, state):
                 machine_instance,
                 spawner_self.user_unique_identifier,
                 spawner_self.state_shared_access_enabled,
+                assigned_at=spawner_self.state_allocation_started_at,
             )
         finally:
             machine_manager_lock.release()
@@ -49,6 +52,8 @@ def spawner_get_state(spawner_self):
         state["notebook_port"] = spawner_self.state_notebook_port
     if spawner_self.state_shared_access_enabled is not None:
         state["shared_access_enabled"] = spawner_self.state_shared_access_enabled
+    if spawner_self.state_allocation_started_at is not None:
+        state["allocation_started_at"] = spawner_self.state_allocation_started_at
     return state
 
 
@@ -59,3 +64,4 @@ def spawner_clear_state(spawner_self):
     spawner_self.state_machine_instance_id = None
     spawner_self.state_machine_instance = None
     spawner_self.state_shared_access_enabled = None
+    spawner_self.state_allocation_started_at = None

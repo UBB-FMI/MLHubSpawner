@@ -76,8 +76,17 @@ class NodeFitnessScorer:
     RAM_HEADROOM_WEIGHT = 0.25
     GPU_IDLE_WEIGHT = 0.25
     CPU_IDLE_WEIGHT = 0.10
+    ASSIGNED_USER_PENALTY_PER_USER = 0.02
 
-    def score(self, *, gpus: Sequence[GPUMetrics], ram_total_bytes: Optional[int], ram_available_bytes: Optional[int], cpu_usage_pct: Optional[float]) -> Optional[float]:
+    def score(
+        self,
+        *,
+        gpus: Sequence[GPUMetrics],
+        ram_total_bytes: Optional[int],
+        ram_available_bytes: Optional[int],
+        cpu_usage_pct: Optional[float],
+        assigned_user_count: int = 0,
+    ) -> Optional[float]:
         components: List[Tuple[float, float]] = []
 
         gpu_memory_headroom_values = [
@@ -113,7 +122,9 @@ class NodeFitnessScorer:
 
         weight_sum = sum(weight for weight, _ in components)
         weighted_score = sum(weight * value for weight, value in components) / weight_sum
-        return round(weighted_score * 100.0, 2)
+        assigned_user_penalty = min(1.0, max(0.0, float(assigned_user_count)) * self.ASSIGNED_USER_PENALTY_PER_USER)
+        adjusted_score = weighted_score * (1.0 - assigned_user_penalty)
+        return round(adjusted_score * 100.0, 2)
 
 
 class NodeHealthMonitor:
@@ -265,6 +276,7 @@ class NodeHealthMonitor:
                 ram_total_bytes=collected_metrics.ram_total_bytes,
                 ram_available_bytes=collected_metrics.ram_available_bytes,
                 cpu_usage_pct=cpu_usage_pct,
+                assigned_user_count=machine_instance.allocation_count,
             )
 
             self._cache[machine_instance] = NodeSnapshot(

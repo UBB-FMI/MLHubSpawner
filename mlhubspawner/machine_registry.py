@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -21,6 +22,12 @@ def build_endpoint(hostname: str, ssh_port: int) -> str:
 
 
 @dataclass(eq=False)
+class AssignedUserRecord:
+    shared_access_enabled: bool
+    assigned_at: float
+
+
+@dataclass(eq=False)
 class MachineType:
     type_id: str
     codename: str
@@ -32,7 +39,7 @@ class MachineType:
     def total_instances(self) -> int:
         return len(self.instances)
 
-    def to_display_dict(self, include_instances: bool = False) -> Dict[str, object]:
+    def to_display_dict(self, include_instances: bool = False, current_time: Optional[float] = None) -> Dict[str, object]:
         data = dict(self.display_data)
         data["type_id"] = self.type_id
         data["codename"] = self.codename
@@ -40,7 +47,9 @@ class MachineType:
         data["shared_access_enabled"] = self.shared_access_enabled
         data["privileged_access_required"] = self.privileged_access_required
         if include_instances:
-            data["instances"] = [machine_instance.to_display_dict() for machine_instance in self.instances]
+            if current_time is None:
+                current_time = time.time()
+            data["instances"] = [machine_instance.to_display_dict(current_time=current_time) for machine_instance in self.instances]
         return data
 
 
@@ -52,7 +61,7 @@ class MachineInstance:
     machine_type: MachineType
     hostname: str
     ssh_port: int
-    assigned_users: Dict[str, bool] = field(default_factory=dict)
+    assigned_users: Dict[str, AssignedUserRecord] = field(default_factory=dict)
 
     @property
     def endpoint(self) -> str:
@@ -72,20 +81,49 @@ class MachineInstance:
 
     @property
     def has_exclusive_allocation(self) -> bool:
-        return any(not shared_access_enabled for shared_access_enabled in self.assigned_users.values())
+        return any(not assignment.shared_access_enabled for assignment in self.assigned_users.values())
 
-    def assign_user(self, unique_identifier: str, shared_access_enabled: bool):
-        self.assigned_users[unique_identifier] = shared_access_enabled
+    @property
+    def assigned_usernames(self) -> List[str]:
+        return sorted(self.assigned_users.keys())
+
+    def assign_user(self, unique_identifier: str, shared_access_enabled: bool, assigned_at: Optional[float] = None):
+        if assigned_at is None:
+            assigned_at = time.time()
+        self.assigned_users[unique_identifier] = AssignedUserRecord(
+            shared_access_enabled=shared_access_enabled,
+            assigned_at=float(assigned_at),
+        )
 
     def release_user(self, unique_identifier: str):
         self.assigned_users.pop(unique_identifier, None)
 
-    def to_display_dict(self) -> Dict[str, object]:
+    def assigned_user_entries(self, current_time: Optional[float] = None) -> List[Dict[str, object]]:
+        if current_time is None:
+            current_time = time.time()
+
+        normalized_current_time = float(current_time)
+        entries = []
+        for username in self.assigned_usernames:
+            assignment = self.assigned_users[username]
+            entries.append(
+                {
+                    "username": username,
+                    "shared_access_enabled": assignment.shared_access_enabled,
+                    "assigned_at": int(assignment.assigned_at),
+                    "assigned_duration_seconds": max(0, int(normalized_current_time - assignment.assigned_at)),
+                }
+            )
+        return entries
+
+    def to_display_dict(self, current_time: Optional[float] = None) -> Dict[str, object]:
         return {
             "instance_id": self.instance_id,
             "hostname": self.display_hostname,
             "endpoint": self.endpoint,
             "assigned_user_count": self.allocation_count,
+            "assigned_usernames": self.assigned_usernames,
+            "assigned_users": self.assigned_user_entries(current_time=current_time),
             "has_allocations": self.has_allocations,
             "has_exclusive_allocation": self.has_exclusive_allocation,
         }

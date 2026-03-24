@@ -292,16 +292,6 @@
   box-shadow: 0 20px 34px var(--launch-summary-shadow, rgba(56, 193, 114, 0.14));
 }
 
-.launch-summary-line {
-  color: #eff8f1;
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.launch-summary-line + .launch-summary-line {
-  margin-top: 8px;
-}
-
 .launch-summary-card .mlhub-card-header {
   margin-bottom: 14px;
 }
@@ -310,12 +300,54 @@
   color: rgba(239, 248, 241, 0.86);
 }
 
-.launch-summary-line strong {
+.launch-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.launch-summary-stat {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 17, 28, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.launch-summary-stat.is-wide {
+  grid-column: span 3;
+}
+
+.launch-summary-stat-label {
+  color: rgba(239, 248, 241, 0.74);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.launch-summary-stat-value {
+  margin-top: 8px;
   color: #ffffff;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .launch-summary-copy {
   margin-top: 12px;
   color: #eff8f1;
   line-height: 1.55;
+}
+
+@media (max-width: 720px) {
+  .launch-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .launch-summary-stat.is-wide {
+    grid-column: auto;
+  }
 }

@@ -247,6 +247,108 @@
   line-height: 1.4;
 }
 
+.health-assigned-users-empty {
+  margin-top: 12px;
+  color: var(--mlhub-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.health-assignments-panel {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.health-assignments-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.health-assignments-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.health-assignments-copy {
+  margin-top: 4px;
+  color: var(--mlhub-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.health-assignments-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #edf2f7;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.health-assignments-table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.health-assignments-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 420px;
+}
+
+.health-assignments-table th,
+.health-assignments-table td {
+  padding: 12px 10px;
+  text-align: left;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.health-assignments-table thead th {
+  padding-top: 0;
+  border-top: 0;
+  color: var(--mlhub-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.health-assignments-table tbody td {
+  color: #edf2f7;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.health-assignment-mode {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.health-assignment-mode.is-shared {
+  background: rgba(79, 209, 197, 0.14);
+  color: #b4f0e9;
+}
+
+.health-assignment-mode.is-exclusive {
+  background: rgba(255, 148, 71, 0.16);
+  color: #ffe2cf;
+}
+
 .health-gpu-list {
   display: grid;
   gap: 10px;

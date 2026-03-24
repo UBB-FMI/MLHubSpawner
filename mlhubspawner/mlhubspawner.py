@@ -92,6 +92,7 @@ class MLHubSpawner(Spawner):
         self.state_machine_instance_id = None
         self.state_machine_instance = None
         self.state_shared_access_enabled = None
+        self.state_allocation_started_at = None
 
         self.machine_offers = {}
 
@@ -142,6 +143,30 @@ class MLHubSpawner(Spawner):
         time.sleep(10) # Needed until https://github.com/jupyterhub/jupyterhub/pull/5020 is merged
         raise JupyterHubHTMLException(errorMessage) 
 
+    def _release_reserved_machine_allocation(self, reason: str) -> bool:
+        machine_manager = getattr(self.__class__, "_machine_manager", None)
+        machine_manager_lock = getattr(self.__class__, "_machine_manager_lock", None)
+
+        if machine_manager is None or machine_manager_lock is None:
+            return False
+
+        machine_manager_lock.acquire()
+        try:
+            allocation = machine_manager.allocations.get(self.user_unique_identifier)
+            if allocation is None:
+                return False
+
+            self.log.info(
+                "Releasing the machine of %s on %s. Reason: %s",
+                self.user_unique_identifier,
+                allocation.machine_instance.endpoint,
+                reason,
+            )
+            machine_manager.release_machine(self.user_unique_identifier)
+            return True
+        finally:
+            machine_manager_lock.release()
+
     async def start(self):
         selected_machine_index = self.user_options['machineSelect']
         shared_access_enabled = self.user_options['sharedAccess']
@@ -183,6 +208,7 @@ class MLHubSpawner(Spawner):
             ):
                 allocation_error_message = "The selected node is no longer available. Please choose a different node and try again."
             else:
+                machine_allocation = self.__class__._machine_manager.allocations.get(self.user_unique_identifier)
                 self.log.info(
                     f"Reserved requested machine for {self.user_unique_identifier}: {chosen_machine_type.codename} at {selected_machine_instance.endpoint}. Shared access: {shared_access_enabled}"
                 )
@@ -190,85 +216,88 @@ class MLHubSpawner(Spawner):
                 self.state_machine_instance_id = selected_machine_instance.instance_id
                 self.state_hostname = selected_machine_instance.endpoint
                 self.state_shared_access_enabled = shared_access_enabled
+                self.state_allocation_started_at = machine_allocation.assigned_at if machine_allocation is not None else None
         finally:
             self.__class__._machine_manager_lock.release()
 
         if allocation_error_message:
             self.__slowError(allocation_error_message)
 
-        #=== CREATE BUCKET ===
-        if self.minio_url:
-            try:
-                auth_state = await self.user.get_auth_state()
-                
-                if not auth_state or 'user' not in auth_state:
-                    self.__slowError("Authentication state is missing. Did you log in via OAuth?")
+        try:
+            #=== CREATE BUCKET ===
+            if self.minio_url:
+                try:
+                    auth_state = await self.user.get_auth_state()
+                    
+                    if not auth_state or 'user' not in auth_state:
+                        self.__slowError("Authentication state is missing. Did you log in via OAuth?")
 
-                # try Azure OID first
-                azure_id = auth_state['user'].get('oid')
-                if not azure_id:
-                    # fall back to a sanitized UID
-                    raw_uid = getattr(self, "user_unique_identifier", "") or ""
-                    azure_id = self.__class__._minio_manager.generate_fallback_oid(raw_uid)
-                    self.log.info(f"No Azure OID found; using fallback ID: {azure_id}")
+                    # try Azure OID first
+                    azure_id = auth_state['user'].get('oid')
+                    if not azure_id:
+                        # fall back to a sanitized UID
+                        raw_uid = getattr(self, "user_unique_identifier", "") or ""
+                        azure_id = self.__class__._minio_manager.generate_fallback_oid(raw_uid)
+                        self.log.info(f"No Azure OID found; using fallback ID: {azure_id}")
 
-                # now create the bucket using either the real OID or our fallback
-                if not self.__class__._minio_manager.create(azure_id):
-                    self.__slowError(f"Bucket creation failed for user with ID: {azure_id}.")
-                else:
-                    self.log.info(f"Bucket successfully created (or already exists) for user with ID: {azure_id}.")
-            except Exception as error:
-                self.__slowError(f"Error during bucket creation: {error}")
-        else:
-            self.log.info("Minio URL not provided in config, skipping bucket creation")
+                    # now create the bucket using either the real OID or our fallback
+                    if not self.__class__._minio_manager.create(azure_id):
+                        self.__slowError(f"Bucket creation failed for user with ID: {azure_id}.")
+                    else:
+                        self.log.info(f"Bucket successfully created (or already exists) for user with ID: {azure_id}.")
+                except Exception as error:
+                    self.__slowError(f"Error during bucket creation: {error}")
+            else:
+                self.log.info("Minio URL not provided in config, skipping bucket creation")
 
 
-        #=== LAUNCH NOTEBOOK ===
-        host_ip = selected_machine_instance.hostname
-        host_port = str(selected_machine_instance.ssh_port)
+            #=== LAUNCH NOTEBOOK ===
+            host_ip = selected_machine_instance.hostname
+            host_port = str(selected_machine_instance.ssh_port)
 
-        (notebook_port, notebook_pid) = await self.notebook_manager.launch_notebook(self.get_env(), self.hub.api_url, host_ip, host_port)
+            (notebook_port, notebook_pid) = await self.notebook_manager.launch_notebook(self.get_env(), self.hub.api_url, host_ip, host_port)
 
-        if notebook_port == None or notebook_pid == None:
-            self.__class__._machine_manager.release_machine(self.user_unique_identifier)
-            spawner_clear_state(self)
-            self.__slowError("We're sorry, we were unable to launch your notebook instance. Your reserved spot was therefore released.")
+            if notebook_port == None or notebook_pid == None:
+                self.__slowError("We're sorry, we were unable to launch your notebook instance. Your reserved spot was therefore released.")
 
-        self.log.info(
-            f"Launched a notebook for {self.user_unique_identifier} on {selected_machine_instance.endpoint} with port {notebook_port} and PID {notebook_pid}"
-        )
+            self.log.info(
+                f"Launched a notebook for {self.user_unique_identifier} on {selected_machine_instance.endpoint} with port {notebook_port} and PID {notebook_pid}"
+            )
 
-        self.state_notebook_port = notebook_port
-        self.state_pid = notebook_pid
+            self.state_notebook_port = notebook_port
+            self.state_pid = notebook_pid
 
-        return (host_ip, notebook_port)
+            return (host_ip, notebook_port)
+        except Exception:
+            self._release_reserved_machine_allocation("spawn failed before the server became ready")
+            self.clear_state()
+            raise
 
 
     async def poll(self):
         #=== NOT CONFIGURED ===
         if not self.state_pid or self.state_pid == 0:
+            self._release_reserved_machine_allocation("spawner has no notebook PID")
             self.clear_state()
             return 0
         
         #=== NOTEBOOK DEAD ===
         notebook_alive = await self.notebook_manager.check_notebook_alive()
         if not notebook_alive:
+            self._release_reserved_machine_allocation("notebook process is no longer alive during poll")
+            self.clear_state()
             return 0
 
         #=== ALL GOOD ===
         return None
 
     async def stop(self, now = False):
-        #=== KILL THE NOTEBOOK ===
-        await self.notebook_manager.kill_notebook()
-
-        #=== RELEASE THE SPOT ===
-        self.__class__._machine_manager_lock.acquire()
-        self.log.info(f"Releasing the machine of {self.user_unique_identifier}")
-        self.__class__._machine_manager.release_machine(self.user_unique_identifier)
-        self.__class__._machine_manager_lock.release()
-
-        self.clear_state()
+        try:
+            #=== KILL THE NOTEBOOK ===
+            await self.notebook_manager.kill_notebook()
+        finally:
+            self._release_reserved_machine_allocation("server stop requested")
+            self.clear_state()
 
     #==== STATE RESTORE ===
 
