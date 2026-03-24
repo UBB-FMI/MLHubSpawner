@@ -120,6 +120,17 @@ function buildNodeHeaderBadges(machine, machineInstance, isRecommended) {
   return badgeMarkup;
 }
 
+function buildHealthScoreCardStyle(score) {
+  var colorChannels = getFitnessColorChannels(score);
+
+  return '' +
+    '--health-score-border:' + getRgbaString(colorChannels, 0.28) + ';' +
+    '--health-score-bg-strong:' + getRgbaString(colorChannels, 0.18) + ';' +
+    '--health-score-bg-soft:' + getRgbaString(colorChannels, 0.08) + ';' +
+    '--health-score-shadow:' + getRgbaString(colorChannels, 0.14) + ';' +
+    '--health-score-value:' + getRgbaString(colorChannels, 1) + ';';
+}
+
 function buildLaunchSummaryCardStyle(snapshot) {
   var fitnessScore = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined
     ? Number(snapshot.fitness_score)
@@ -304,6 +315,10 @@ function renderMachineHealthTable(machine) {
       var barWidth = score !== null ? Math.max(8, Math.min(100, score)) : 8;
       var color = getHealthColor(snapshot);
       var statusMeta = getStatusMeta(snapshot);
+      var scoreLabel = offline ? 'Status' : 'Fitness';
+      var scoreStatusMarkup = offline
+        ? ''
+        : '<span class="health-status-pill ' + escapeHtml(statusMeta.className) + '">' + escapeHtml(statusMeta.label) + '</span>';
       var isRecommended = !!(recommendedMachineInstance && recommendedMachineInstance.instance_id === machineInstance.instance_id);
       var isOpen = expandedHealthInstanceId === machineInstance.instance_id;
       var isSelected = selectedMachineInstanceId === machineInstance.instance_id;
@@ -325,14 +340,17 @@ function renderMachineHealthTable(machine) {
                 '<div class="health-subtitle">' + subtitle + '</div>' +
                 '<div class="health-bar"><div class="health-bar-fill" style="width:' + escapeHtml(barWidth) + '%; background:' + escapeHtml(color) + ';"></div></div>' +
               '</div>' +
-              '<div class="health-meta">' +
-                '<span class="health-status-pill ' + escapeHtml(statusMeta.className) + '">' + escapeHtml(statusMeta.label) + '</span>' +
-                '<span class="health-score-inline' + (offline ? ' is-text' : '') + '" style="color:' + escapeHtml(color) + ';">' + escapeHtml(scoreText) + '</span>' +
+            '</button>' +
+            '<div class="health-side">' +
+              '<div class="health-score-card" style="' + escapeHtml(buildHealthScoreCardStyle(score)) + '">' +
+                '<div class="health-score-label">' + escapeHtml(scoreLabel) + '</div>' +
+                '<div class="health-score-value' + (offline ? ' is-text' : '') + '">' + escapeHtml(scoreText) + '</div>' +
+                scoreStatusMarkup +
               '</div>' +
-            '</button>' +
-            '<button type="button" class="health-detail-toggle' + (isOpen ? ' is-open' : '') + '" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
-              (isOpen ? 'Hide details' : 'View details') +
-            '</button>' +
+              '<button type="button" class="health-detail-toggle' + (isOpen ? ' is-open' : '') + '" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
+                (isOpen ? 'Hide details' : 'View details') +
+              '</button>' +
+            '</div>' +
           '</div>' +
           '<div class="health-detail">' + buildNodeDetails(machine, snapshot, machineInstance) + '</div>' +
         '</div>';
