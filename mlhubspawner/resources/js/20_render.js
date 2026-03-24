@@ -279,7 +279,7 @@ function renderMachineHealthTable(machine) {
   }
 
   visibleMachineInstances = getVisibleMachineInstances(machine);
-  recommendedMachineInstance = getRecommendedMachineInstance(machine);
+  recommendedMachineInstance = visibleMachineInstances[0] || null;
 
   if (visibleMachineInstances.length === 0) {
     tableContainer.innerHTML = '<div class="health-empty">' + escapeHtml(
@@ -315,21 +315,25 @@ function renderMachineHealthTable(machine) {
 
       return '' +
         '<div class="health-item ' + (isOpen ? 'is-open' : '') + (isSelected ? ' is-selected-for-launch' : '') + '">' +
-          '<button type="button" class="health-trigger" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
-            '<div class="health-main">' +
-              '<div class="health-host-line">' +
-                '<div class="health-host' + (isSelected ? ' is-selected' : '') + '">' + escapeHtml(displayHostname(machineInstance)) + '</div>' +
-                '<div class="health-host-badges">' + buildNodeHeaderBadges(machine, machineInstance, isRecommended) + '</div>' +
+          '<div class="health-trigger-row">' +
+            '<button type="button" class="health-trigger" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '">' +
+              '<div class="health-main">' +
+                '<div class="health-host-line">' +
+                  '<div class="health-host' + (isSelected ? ' is-selected' : '') + '">' + escapeHtml(displayHostname(machineInstance)) + '</div>' +
+                  '<div class="health-host-badges">' + buildNodeHeaderBadges(machine, machineInstance, isRecommended) + '</div>' +
+                '</div>' +
+                '<div class="health-subtitle">' + subtitle + '</div>' +
+                '<div class="health-bar"><div class="health-bar-fill" style="width:' + escapeHtml(barWidth) + '%; background:' + escapeHtml(color) + ';"></div></div>' +
               '</div>' +
-              '<div class="health-subtitle">' + subtitle + '</div>' +
-              '<div class="health-bar"><div class="health-bar-fill" style="width:' + escapeHtml(barWidth) + '%; background:' + escapeHtml(color) + ';"></div></div>' +
-            '</div>' +
-            '<div class="health-meta">' +
-              '<span class="health-status-pill ' + escapeHtml(statusMeta.className) + '">' + escapeHtml(statusMeta.label) + '</span>' +
-              '<span class="health-score-inline' + (offline ? ' is-text' : '') + '" style="color:' + escapeHtml(color) + ';">' + escapeHtml(scoreText) + '</span>' +
-              '<span class="health-chevron">&#8250;</span>' +
-            '</div>' +
-          '</button>' +
+              '<div class="health-meta">' +
+                '<span class="health-status-pill ' + escapeHtml(statusMeta.className) + '">' + escapeHtml(statusMeta.label) + '</span>' +
+                '<span class="health-score-inline' + (offline ? ' is-text' : '') + '" style="color:' + escapeHtml(color) + ';">' + escapeHtml(scoreText) + '</span>' +
+              '</div>' +
+            '</button>' +
+            '<button type="button" class="health-detail-toggle' + (isOpen ? ' is-open' : '') + '" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
+              (isOpen ? 'Hide details' : 'View details') +
+            '</button>' +
+          '</div>' +
           '<div class="health-detail">' + buildNodeDetails(machine, snapshot, machineInstance) + '</div>' +
         '</div>';
     }).join('') +
@@ -338,12 +342,17 @@ function renderMachineHealthTable(machine) {
   Array.prototype.forEach.call(tableContainer.querySelectorAll('.health-trigger'), function(button) {
     button.addEventListener('click', function() {
       var instanceId = button.getAttribute('data-instance-id');
-      if (expandedHealthInstanceId === instanceId) {
-        expandedHealthInstanceId = null;
-      } else {
-        expandedHealthInstanceId = instanceId;
-        setSelectedMachineInstance(instanceId);
-      }
+      expandedHealthInstanceId = null;
+      setSelectedMachineInstance(instanceId);
+      renderSelectedMachine();
+    });
+  });
+
+  Array.prototype.forEach.call(tableContainer.querySelectorAll('.health-detail-toggle'), function(button) {
+    button.addEventListener('click', function() {
+      var instanceId = button.getAttribute('data-instance-id');
+      setSelectedMachineInstance(instanceId);
+      expandedHealthInstanceId = expandedHealthInstanceId === instanceId ? null : instanceId;
       renderSelectedMachine();
     });
   });

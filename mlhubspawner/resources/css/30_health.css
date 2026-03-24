@@ -24,12 +24,20 @@
   box-shadow: inset 0 0 0 1px rgba(255, 148, 71, 0.14);
 }
 
+.health-trigger-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: stretch;
+  padding: 14px 18px;
+}
+
 .health-trigger {
   width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
-  padding: 16px 18px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
@@ -39,6 +47,32 @@
 
 .health-trigger:hover {
   background: rgba(255, 255, 255, 0.02);
+}
+
+.health-detail-toggle {
+  align-self: center;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #dce5ef;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.health-detail-toggle:hover {
+  border-color: rgba(255, 148, 71, 0.3);
+  background: rgba(255, 148, 71, 0.12);
+  color: #fff1e4;
+}
+
+.health-detail-toggle.is-open {
+  border-color: rgba(255, 148, 71, 0.34);
+  background: rgba(255, 148, 71, 0.14);
+  color: #fff1e4;
 }
 
 .health-main {
@@ -146,16 +180,6 @@
   letter-spacing: 0.06em;
 }
 
-.health-chevron {
-  color: var(--mlhub-muted);
-  font-size: 18px;
-  transition: transform 120ms ease;
-}
-
-.health-item.is-open .health-chevron {
-  transform: rotate(90deg);
-}
-
 .health-detail {
   display: none;
   padding: 0 18px 18px;
@@ -234,11 +258,17 @@
     grid-template-columns: 1fr;
   }
 
+  .health-trigger-row,
   .health-trigger {
     grid-template-columns: 1fr;
   }
 
   .health-meta {
     justify-content: space-between;
+  }
+
+  .health-detail-toggle {
+    width: 100%;
+    min-height: 40px;
   }
 }

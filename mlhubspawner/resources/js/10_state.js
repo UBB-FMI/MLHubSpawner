@@ -221,35 +221,26 @@ function shouldDisplayMachineInstance(machine, machineInstance) {
 function getVisibleMachineInstances(machine) {
   return getMachineInstances(machine).filter(function(machineInstance) {
     return shouldDisplayMachineInstance(machine, machineInstance);
-  });
-}
+  }).sort(function(firstInstance, secondInstance) {
+    var firstSnapshot = nodeHealth[firstInstance.instance_id];
+    var secondSnapshot = nodeHealth[secondInstance.instance_id];
+    var firstFitness = firstSnapshot && firstSnapshot.fitness_score !== null && firstSnapshot.fitness_score !== undefined
+      ? Number(firstSnapshot.fitness_score)
+      : -1;
+    var secondFitness = secondSnapshot && secondSnapshot.fitness_score !== null && secondSnapshot.fitness_score !== undefined
+      ? Number(secondSnapshot.fitness_score)
+      : -1;
 
-function getRecommendedMachineInstance(machine) {
-  var visibleMachineInstances = getVisibleMachineInstances(machine);
-  var recommendedMachineInstance = visibleMachineInstances[0] || null;
-  var bestFitnessScore = null;
-
-  visibleMachineInstances.forEach(function(machineInstance) {
-    var snapshot = nodeHealth[machineInstance.instance_id];
-    var fitnessScore;
-
-    if (isOfflineSnapshot(snapshot) || snapshot.fitness_score === null || snapshot.fitness_score === undefined) {
-      return;
+    if (firstFitness !== secondFitness) {
+      return secondFitness - firstFitness;
     }
 
-    fitnessScore = Number(snapshot.fitness_score);
-    if (bestFitnessScore === null || fitnessScore > bestFitnessScore) {
-      bestFitnessScore = fitnessScore;
-      recommendedMachineInstance = machineInstance;
-    }
+    return displayHostname(firstInstance).localeCompare(displayHostname(secondInstance));
   });
-
-  return recommendedMachineInstance;
 }
 
 function syncSelectedMachineInstance(machine) {
   var visibleMachineInstances;
-  var recommendedMachineInstance;
   if (!machine) {
     selectedMachineInstanceId = null;
     expandedHealthInstanceId = null;
@@ -275,10 +266,8 @@ function syncSelectedMachineInstance(machine) {
     expandedHealthInstanceId = null;
   }
 
-  recommendedMachineInstance = getRecommendedMachineInstance(machine);
-  if (!selectedMachineInstanceId && recommendedMachineInstance) {
-    selectedMachineInstanceId = recommendedMachineInstance.instance_id;
-    expandedHealthInstanceId = recommendedMachineInstance.instance_id;
+  if (!selectedMachineInstanceId && visibleMachineInstances[0]) {
+    selectedMachineInstanceId = visibleMachineInstances[0].instance_id;
   }
 }
 
