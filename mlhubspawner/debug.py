@@ -45,5 +45,4 @@ if __name__ == "__main__":
 
     # Check what remote_hosts is set to:
     #print("remote_hosts:", spawner.debug())
-    print("Options form:", spawner._options_form_default())
-
+    print("Options form:", spawner._build_options_form())

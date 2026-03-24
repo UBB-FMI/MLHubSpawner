@@ -20,6 +20,7 @@ from .minio_manager import MinIOManager
 import time
 from threading import Lock
 
+
 class MLHubSpawner(Spawner):
 
     # Remote hosts read from the configuration file. This is initialized per-instance!!
@@ -93,6 +94,12 @@ class MLHubSpawner(Spawner):
         self.state_shared_access_enabled = None
 
         self.machine_offers = {}
+
+        def build_options_form_for_request(spawner):
+            return spawner._build_options_form()
+
+        # Keep options_form callable so JupyterHub rebuilds the HTML on each spawn-page request.
+        self.options_form = build_options_form_for_request
         self._ensure_node_health_monitor_started()
 
     def _ensure_node_health_monitor_started(self):
@@ -267,8 +274,8 @@ class MLHubSpawner(Spawner):
 
     #==== FORM DATA ====
 
-    # Return the actual HTML page for the form. Only show users things they have access to.
-    def _options_form_default(self):
+    # Build a fresh HTML snippet for the spawn page request.
+    def _build_options_form(self):
         available_remote_hosts = self.__class__._machine_manager.get_available_types(self.user_privilege_level)
 
         self.machine_offers[self.user_unique_identifier] = available_remote_hosts
