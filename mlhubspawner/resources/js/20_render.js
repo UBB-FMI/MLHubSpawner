@@ -85,7 +85,6 @@ function renderMachineDetails(machine) {
         '<p class="mlhub-card-copy">Session sharing is enabled by default so users do not request exclusive nodes by mistake.</p>' +
       '</div>' +
     '</div>' +
-    '<p class="mlhub-card-copy">Selected machine type: ' + escapeHtml(machine.codename || 'Unnamed') + '.</p>' +
     sessionOptionsMarkup;
 
   var sharedAccess = document.getElementById('sharedAccess');
