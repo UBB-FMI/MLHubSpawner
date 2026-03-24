@@ -145,43 +145,56 @@ class MLHubSpawner(Spawner):
     async def start(self):
         selected_machine_index = self.user_options['machineSelect']
         shared_access_enabled = self.user_options['sharedAccess']
+        selected_machine_instance_id = self.user_options.get('machineInstanceId')
 
         if self.user_unique_identifier not in self.machine_offers:
             self.__slowError("Something didn't go well. Please go to the main page and try again.")
 
-        chosen_machine_type = self.machine_offers[self.user_unique_identifier][selected_machine_index]
+        available_machine_types = self.machine_offers[self.user_unique_identifier]
+        if selected_machine_index < 0 or selected_machine_index >= len(available_machine_types):
+            self.__slowError("The selected machine type is no longer available. Please choose again.")
+
+        chosen_machine_type = available_machine_types[selected_machine_index]
         is_privileged = (self.user_privilege_level >= 1)
 
         if shared_access_enabled == False and is_privileged == False:
             self.__slowError("Your account privilege does not allow for exclusive access to GPU machines.")
-        
 
-        #=== FIND MACHINE ===
+        if not selected_machine_instance_id:
+            self.__slowError("Please choose a node before starting your session.")
+
+        selected_machine_instance = None
+        allocation_error_message = None
+
+        #=== RESERVE CHOSEN MACHINE ===
         self.__class__._machine_manager_lock.acquire()
+        try:
+            selected_machine_instance = self.__class__._machine_registry.resolve_instance(selected_machine_instance_id)
 
-        found_machine_instance = self.__class__._machine_manager.find_machine(chosen_machine_type, shared_access_enabled)
-
-        if found_machine_instance == None:
+            if selected_machine_instance is None:
+                allocation_error_message = "The selected node could not be found. Please choose a different node and try again."
+            elif selected_machine_instance.machine_type is not chosen_machine_type:
+                allocation_error_message = "The selected node does not belong to the chosen machine type. Please choose again."
+            elif not self.__class__._machine_manager.take_machine(
+                chosen_machine_type,
+                selected_machine_instance,
+                self.user_unique_identifier,
+                shared_access_enabled,
+            ):
+                allocation_error_message = "The selected node is no longer available. Please choose a different node and try again."
+            else:
+                self.log.info(
+                    f"Reserved requested machine for {self.user_unique_identifier}: {chosen_machine_type.codename} at {selected_machine_instance.endpoint}. Shared access: {shared_access_enabled}"
+                )
+                self.state_machine_instance = selected_machine_instance
+                self.state_machine_instance_id = selected_machine_instance.instance_id
+                self.state_hostname = selected_machine_instance.endpoint
+                self.state_shared_access_enabled = shared_access_enabled
+        finally:
             self.__class__._machine_manager_lock.release()
-            self.__slowError("We're sorry, but there is no available machine that meets your current requirements.")
 
-        self.log.info(
-            f"Found machine for {self.user_unique_identifier}: {chosen_machine_type.codename} at {found_machine_instance.endpoint}."
-        )
-        #=== RESERVE SPOT ===
-        if not self.__class__._machine_manager.take_machine(chosen_machine_type, found_machine_instance, self.user_unique_identifier, shared_access_enabled):
-            self.__class__._machine_manager_lock.release()
-            self.__slowError("We're sorry, but we were unable to reserve you a spot on your desired machine.")
-
-        self.log.info(
-            f"Reserved a spot for {self.user_unique_identifier} on {found_machine_instance.endpoint}. Shared access: {shared_access_enabled}"
-        )
-
-        self.state_machine_instance = found_machine_instance
-        self.state_machine_instance_id = found_machine_instance.instance_id
-        self.state_hostname = found_machine_instance.endpoint
-        self.state_shared_access_enabled = shared_access_enabled
-        self.__class__._machine_manager_lock.release()
+        if allocation_error_message:
+            self.__slowError(allocation_error_message)
 
         #=== CREATE BUCKET ===
         if self.minio_url:
@@ -211,8 +224,8 @@ class MLHubSpawner(Spawner):
 
 
         #=== LAUNCH NOTEBOOK ===
-        host_ip = found_machine_instance.hostname
-        host_port = str(found_machine_instance.ssh_port)
+        host_ip = selected_machine_instance.hostname
+        host_port = str(selected_machine_instance.ssh_port)
 
         (notebook_port, notebook_pid) = await self.notebook_manager.launch_notebook(self.get_env(), self.hub.api_url, host_ip, host_port)
 
@@ -222,7 +235,7 @@ class MLHubSpawner(Spawner):
             self.__slowError("We're sorry, we were unable to launch your notebook instance. Your reserved spot was therefore released.")
 
         self.log.info(
-            f"Launched a notebook for {self.user_unique_identifier} on {found_machine_instance.endpoint} with port {notebook_port} and PID {notebook_pid}"
+            f"Launched a notebook for {self.user_unique_identifier} on {selected_machine_instance.endpoint} with port {notebook_port} and PID {notebook_pid}"
         )
 
         self.state_notebook_port = notebook_port

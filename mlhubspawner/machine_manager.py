@@ -134,6 +134,13 @@ class MachineManager:
             )
             return False
 
+        if not self.is_machine_online(machine_instance):
+            self.upstream_logger.info(
+                "[MachineManager] Machine instance %s is offline. Cannot allocate.",
+                machine_instance.endpoint,
+            )
+            return False
+
         if requested_shared_mode and not chosen_machine_type.shared_access_enabled:
             self.upstream_logger.info(
                 "[MachineManager] Machine type with codename %s does not support shared access for machine %s",

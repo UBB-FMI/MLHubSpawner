@@ -8,6 +8,7 @@ var selectedMachineIndex = 0;
 var expandedHealthInstanceId = null;
 var preferredSharedAccessRequested = true;
 var userCanRequestExclusive = !!uiContext.canRequestExclusive;
+var selectedMachineInstanceId = null;
 var selectedHistoryMetricByInstanceId = {};
 
 function escapeHtml(value) {
@@ -60,6 +61,45 @@ function getHealthColor(snapshot) {
     return '#8d97a6';
   }
   return getHealthColorFromScore(snapshot.fitness_score);
+}
+
+function interpolateNumber(startValue, endValue, ratio) {
+  return Math.round(startValue + (endValue - startValue) * ratio);
+}
+
+function getFitnessColorChannels(score) {
+  var red = [248, 113, 113];
+  var orange = [255, 122, 26];
+  var green = [56, 193, 114];
+  var clampedScore;
+  var startColor;
+  var endColor;
+  var ratio;
+
+  if (score === null || score === undefined || isNaN(Number(score))) {
+    return [141, 151, 166];
+  }
+
+  clampedScore = Math.max(0, Math.min(100, Number(score)));
+  if (clampedScore <= 50) {
+    startColor = red;
+    endColor = orange;
+    ratio = clampedScore / 50;
+  } else {
+    startColor = orange;
+    endColor = green;
+    ratio = (clampedScore - 50) / 50;
+  }
+
+  return [
+    interpolateNumber(startColor[0], endColor[0], ratio),
+    interpolateNumber(startColor[1], endColor[1], ratio),
+    interpolateNumber(startColor[2], endColor[2], ratio),
+  ];
+}
+
+function getRgbaString(colorChannels, alpha) {
+  return 'rgba(' + colorChannels[0] + ', ' + colorChannels[1] + ', ' + colorChannels[2] + ', ' + alpha + ')';
 }
 
 function isOfflineSnapshot(snapshot) {
@@ -140,6 +180,121 @@ function machineSupportsSharing(machine) {
 
 function isSharingForced(machine) {
   return machineSupportsSharing(machine) && !userCanRequestExclusive;
+}
+
+function getSharedAccessRequested(machine) {
+  if (!machineSupportsSharing(machine)) {
+    return false;
+  }
+  if (isSharingForced(machine)) {
+    return true;
+  }
+  return preferredSharedAccessRequested;
+}
+
+function getCurrentMachine() {
+  return filteredMachinesList[selectedMachineIndex] || null;
+}
+
+function getSelectedMachineInstance(machine) {
+  if (!machine || !selectedMachineInstanceId) {
+    return null;
+  }
+
+  return getMachineInstances(machine).find(function(machineInstance) {
+    return machineInstance.instance_id === selectedMachineInstanceId;
+  }) || null;
+}
+
+function shouldDisplayMachineInstance(machine, machineInstance) {
+  if (!machine || !machineInstance) {
+    return false;
+  }
+
+  if (!getSharedAccessRequested(machine)) {
+    return Number(machineInstance.assigned_user_count || 0) === 0;
+  }
+
+  return true;
+}
+
+function getVisibleMachineInstances(machine) {
+  return getMachineInstances(machine).filter(function(machineInstance) {
+    return shouldDisplayMachineInstance(machine, machineInstance);
+  });
+}
+
+function getRecommendedMachineInstance(machine) {
+  var visibleMachineInstances = getVisibleMachineInstances(machine);
+  var recommendedMachineInstance = visibleMachineInstances[0] || null;
+  var bestFitnessScore = null;
+
+  visibleMachineInstances.forEach(function(machineInstance) {
+    var snapshot = nodeHealth[machineInstance.instance_id];
+    var fitnessScore;
+
+    if (isOfflineSnapshot(snapshot) || snapshot.fitness_score === null || snapshot.fitness_score === undefined) {
+      return;
+    }
+
+    fitnessScore = Number(snapshot.fitness_score);
+    if (bestFitnessScore === null || fitnessScore > bestFitnessScore) {
+      bestFitnessScore = fitnessScore;
+      recommendedMachineInstance = machineInstance;
+    }
+  });
+
+  return recommendedMachineInstance;
+}
+
+function syncSelectedMachineInstance(machine) {
+  var visibleMachineInstances;
+  var recommendedMachineInstance;
+  if (!machine) {
+    selectedMachineInstanceId = null;
+    expandedHealthInstanceId = null;
+    return;
+  }
+
+  visibleMachineInstances = getVisibleMachineInstances(machine);
+  if (!visibleMachineInstances.length) {
+    selectedMachineInstanceId = null;
+    expandedHealthInstanceId = null;
+    return;
+  }
+
+  if (!visibleMachineInstances.some(function(machineInstance) {
+    return machineInstance.instance_id === selectedMachineInstanceId;
+  })) {
+    selectedMachineInstanceId = null;
+  }
+
+  if (expandedHealthInstanceId && !visibleMachineInstances.some(function(machineInstance) {
+    return machineInstance.instance_id === expandedHealthInstanceId;
+  })) {
+    expandedHealthInstanceId = null;
+  }
+
+  recommendedMachineInstance = getRecommendedMachineInstance(machine);
+  if (!selectedMachineInstanceId && recommendedMachineInstance) {
+    selectedMachineInstanceId = recommendedMachineInstance.instance_id;
+    expandedHealthInstanceId = recommendedMachineInstance.instance_id;
+  }
+}
+
+function setSelectedMachineInstance(instanceId) {
+  selectedMachineInstanceId = instanceId || null;
+}
+
+function isMachineInstancePotentiallyUnavailable(machine, machineInstance) {
+  var snapshot = nodeHealth[machineInstance.instance_id];
+  var offline = isOfflineSnapshot(snapshot);
+
+  if (!getSharedAccessRequested(machine)) {
+    return offline;
+  }
+
+  return offline || !!machineInstance.has_exclusive_allocation;
 }
 
 function getSelectedHistoryMetric(instanceId) {

@@ -275,3 +275,47 @@
 .session-note.is-muted {
   color: var(--mlhub-muted);
 }
+
+.launch-summary-card .health-empty {
+  margin: 0;
+}
+
+.launch-summary-card {
+  margin-top: 22px;
+}
+
+.launch-summary-card.is-populated {
+  border-color: var(--launch-summary-border, rgba(56, 193, 114, 0.28));
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.09), transparent 34%),
+    linear-gradient(180deg, var(--launch-summary-bg-strong, rgba(56, 193, 114, 0.18)), var(--launch-summary-bg-soft, rgba(56, 193, 114, 0.1)));
+  box-shadow: 0 20px 34px var(--launch-summary-shadow, rgba(56, 193, 114, 0.14));
+}
+
+.launch-summary-line {
+  color: #eff8f1;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.launch-summary-line + .launch-summary-line {
+  margin-top: 8px;
+}
+
+.launch-summary-card .mlhub-card-header {
+  margin-bottom: 14px;
+}
+
+.launch-summary-card .mlhub-card-copy {
+  color: rgba(239, 248, 241, 0.86);
+}
+
+.launch-summary-line strong {
+  color: #ffffff;
+}
+
+.launch-summary-copy {
+  margin-top: 12px;
+  color: #eff8f1;
+  line-height: 1.55;
+}

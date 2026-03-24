@@ -45,6 +45,7 @@ function renderMachineCards() {
 
 function renderMachineDetails(machine) {
   var detailsDiv = document.getElementById('machineDetails');
+  var selectedMachineInstance;
   if (!machine) {
     detailsDiv.innerHTML = '<div class="health-empty">No machine selected.</div>';
     return;
@@ -52,16 +53,18 @@ function renderMachineDetails(machine) {
 
   var sharingAvailable = machineSupportsSharing(machine);
   var sharingForced = isSharingForced(machine);
-  var sharedAccessRequested = sharingAvailable ? (sharingForced ? true : preferredSharedAccessRequested) : false;
+  var sharedAccessRequested = getSharedAccessRequested(machine);
   var sharingMessage = sharingAvailable
     ? (sharingForced
         ? 'Your current privileges do not allow exclusive access, so session sharing is required for this launch.'
         : 'Privileged users can clear this box to hold the selected machine exclusively.')
     : 'This machine type does not expose shared-session scheduling.';
   var sharingNoteClass = sharingForced ? ' is-warning' : (sharingAvailable ? '' : ' is-muted');
+  selectedMachineInstance = getSelectedMachineInstance(machine);
 
   var sessionOptionsMarkup =
     '<input type="hidden" id="sharedAccessValue" name="sharedAccessValue" value="' + (sharedAccessRequested ? 'true' : 'false') + '">' +
+    '<input type="hidden" id="machineInstanceId" name="machineInstanceId" value="' + escapeHtml(selectedMachineInstance ? selectedMachineInstance.instance_id : '') + '">' +
     '<div id="sessionOptionsCard" class="session-options' + (sharedAccessRequested ? ' is-enabled' : '') + (sharingForced || !sharingAvailable ? ' is-disabled' : '') + '">' +
       '<label class="share-toggle' + (sharingForced || !sharingAvailable ? ' is-disabled' : '') + '" for="sharedAccess">' +
         '<input class="form-check-input" type="checkbox" id="sharedAccess"' + (sharedAccessRequested ? ' checked' : '') + (sharingForced || !sharingAvailable ? ' disabled' : '') + '>' +
@@ -89,7 +92,8 @@ function renderMachineDetails(machine) {
   if (sharedAccess) {
     sharedAccess.addEventListener('change', function() {
       preferredSharedAccessRequested = !!(sharedAccess.checked && !sharedAccess.disabled);
-      renderSharingState();
+      syncSelectedMachineInstance(machine);
+      renderSelectedMachine();
     });
   }
   renderSharingState();
@@ -101,6 +105,85 @@ function formatAssignedUserCount(machineInstance) {
     : 0;
   var label = assignedUserCount === 1 ? 'person assigned' : 'people assigned';
   return assignedUserCount + ' ' + label;
+}
+
+function buildNodeHeaderBadges(machine, machineInstance, isRecommended) {
+  var potentiallyUnavailable = isMachineInstancePotentiallyUnavailable(machine, machineInstance);
+  var badgeMarkup = '';
+
+  if (isRecommended) {
+    badgeMarkup += '<span class="mlhub-badge is-accent">Recommended</span>';
+  }
+
+  badgeMarkup += '<span class="mlhub-badge ' + (potentiallyUnavailable ? 'is-muted' : 'is-cyan') + '">' + (potentiallyUnavailable ? 'Potentially unavailable' : 'Eligible now') + '</span>';
+
+  return badgeMarkup;
+}
+
+function buildLaunchSummaryCardStyle(snapshot) {
+  var fitnessScore = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined
+    ? Number(snapshot.fitness_score)
+    : null;
+  var colorChannels = getFitnessColorChannels(fitnessScore);
+
+  return '' +
+    '--launch-summary-border:' + getRgbaString(colorChannels, 0.34) + ';' +
+    '--launch-summary-bg-strong:' + getRgbaString(colorChannels, 0.22) + ';' +
+    '--launch-summary-bg-soft:' + getRgbaString(colorChannels, 0.12) + ';' +
+    '--launch-summary-shadow:' + getRgbaString(colorChannels, 0.16) + ';';
+}
+
+function renderLaunchSummaryCard(machine) {
+  var summaryContainer = document.getElementById('launchSummaryCard');
+  var selectedMachineInstance;
+  var snapshot;
+  var fitnessText;
+  var fitnessCopy = 'Unavailable';
+  var availabilityCopy = '';
+  var sharingCopy = '';
+
+  if (!summaryContainer) {
+    return;
+  }
+
+  selectedMachineInstance = getSelectedMachineInstance(machine);
+  if (!machine || !selectedMachineInstance) {
+    summaryContainer.classList.remove('is-populated');
+    summaryContainer.removeAttribute('style');
+    summaryContainer.innerHTML = '<div class="health-empty">Choose a node to preview where your session will launch.</div>';
+    return;
+  }
+
+  snapshot = nodeHealth[selectedMachineInstance.instance_id];
+  fitnessText = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined
+    ? Number(snapshot.fitness_score).toFixed(1)
+    : null;
+  if (fitnessText !== null) {
+    fitnessCopy = fitnessText;
+  }
+  if (isMachineInstancePotentiallyUnavailable(machine, selectedMachineInstance)) {
+    availabilityCopy = ' Availability will be rechecked when the launch starts.';
+  }
+  if (!machineSupportsSharing(machine)) {
+    sharingCopy = 'Not available for this machine type';
+  } else {
+    sharingCopy = getSharedAccessRequested(machine) ? 'Enabled' : 'Disabled';
+  }
+
+  summaryContainer.classList.add('is-populated');
+  summaryContainer.setAttribute('style', buildLaunchSummaryCardStyle(snapshot));
+  summaryContainer.innerHTML =
+    '<div class="mlhub-card-header">' +
+      '<div>' +
+        '<h3 class="mlhub-card-title">Launch summary</h3>' +
+        '<p class="mlhub-card-copy">This is the machine instance that will receive your session if you start now.</p>' +
+      '</div>' +
+    '</div>' +
+    '<div class="launch-summary-line"><strong>Node type:</strong> ' + escapeHtml(machine.codename || 'Unnamed') + '</div>' +
+    '<div class="launch-summary-line"><strong>Instance:</strong> ' + escapeHtml(displayHostname(selectedMachineInstance)) + '</div>' +
+    '<div class="launch-summary-line"><strong>Session sharing:</strong> ' + escapeHtml(sharingCopy) + '</div>' +
+    '<div class="launch-summary-line"><strong>Current fitness:</strong> ' + escapeHtml(fitnessCopy) + '</div>' +
+    '<div class="launch-summary-copy">The launch target is currently selected from the visible nodes for this machine profile.' + escapeHtml(availabilityCopy) + '</div>';
 }
 
 function buildNodeHistoryMetricOptions(machineInstance) {
@@ -135,7 +218,7 @@ function buildNodeHistoryMarkup(machineInstance) {
     '</div>';
 }
 
-function buildNodeDetails(snapshot, machineInstance) {
+function buildNodeDetails(machine, snapshot, machineInstance) {
   var historyMarkup = buildNodeHistoryMarkup(machineInstance);
   if (!snapshot) {
     return '' +
@@ -186,6 +269,8 @@ function buildNodeDetails(snapshot, machineInstance) {
 
 function renderMachineHealthTable(machine) {
   var tableContainer = document.getElementById('machineHealthTable');
+  var visibleMachineInstances;
+  var recommendedMachineInstance;
   destroyNodeHistoryPlots();
 
   if (!machine || getMachineInstances(machine).length === 0) {
@@ -193,13 +278,25 @@ function renderMachineHealthTable(machine) {
     return;
   }
 
-  if (expandedHealthInstanceId && !nodeHealth[expandedHealthInstanceId] && !getMachineInstances(machine).some(function(instance) { return instance.instance_id === expandedHealthInstanceId; })) {
+  visibleMachineInstances = getVisibleMachineInstances(machine);
+  recommendedMachineInstance = getRecommendedMachineInstance(machine);
+
+  if (visibleMachineInstances.length === 0) {
+    tableContainer.innerHTML = '<div class="health-empty">' + escapeHtml(
+      getSharedAccessRequested(machine)
+        ? 'No nodes are currently listed for this machine profile.'
+        : 'No zero-assignment nodes are currently available to request exclusive access.'
+    ) + '</div>';
+    return;
+  }
+
+  if (expandedHealthInstanceId && !visibleMachineInstances.some(function(instance) { return instance.instance_id === expandedHealthInstanceId; })) {
     expandedHealthInstanceId = null;
   }
 
   tableContainer.innerHTML =
     '<div class="health-list">' +
-    getMachineInstances(machine).map(function(machineInstance) {
+    visibleMachineInstances.map(function(machineInstance) {
       var snapshot = nodeHealth[machineInstance.instance_id];
       var offline = isOfflineSnapshot(snapshot);
       var score = !offline ? Number(snapshot.fitness_score) : null;
@@ -207,14 +304,23 @@ function renderMachineHealthTable(machine) {
       var barWidth = score !== null ? Math.max(8, Math.min(100, score)) : 8;
       var color = getHealthColor(snapshot);
       var statusMeta = getStatusMeta(snapshot);
+      var isRecommended = !!(recommendedMachineInstance && recommendedMachineInstance.instance_id === machineInstance.instance_id);
       var isOpen = expandedHealthInstanceId === machineInstance.instance_id;
-      var subtitle = escapeHtml(formatAssignedUserCount(machineInstance)) + ' · ' + escapeHtml(offline ? 'Node is currently unavailable' : 'Click to inspect current load');
+      var isSelected = selectedMachineInstanceId === machineInstance.instance_id;
+      var subtitle = escapeHtml(formatAssignedUserCount(machineInstance)) + ' · ' + escapeHtml(
+        isSelected
+          ? 'Launch target'
+          : 'Open details to inspect usage and history'
+      );
 
       return '' +
-        '<div class="health-item ' + (isOpen ? 'is-open' : '') + '">' +
+        '<div class="health-item ' + (isOpen ? 'is-open' : '') + (isSelected ? ' is-selected-for-launch' : '') + '">' +
           '<button type="button" class="health-trigger" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
             '<div class="health-main">' +
-              '<div class="health-host">' + escapeHtml(displayHostname(machineInstance)) + '</div>' +
+              '<div class="health-host-line">' +
+                '<div class="health-host' + (isSelected ? ' is-selected' : '') + '">' + escapeHtml(displayHostname(machineInstance)) + '</div>' +
+                '<div class="health-host-badges">' + buildNodeHeaderBadges(machine, machineInstance, isRecommended) + '</div>' +
+              '</div>' +
               '<div class="health-subtitle">' + subtitle + '</div>' +
               '<div class="health-bar"><div class="health-bar-fill" style="width:' + escapeHtml(barWidth) + '%; background:' + escapeHtml(color) + ';"></div></div>' +
             '</div>' +
@@ -224,7 +330,7 @@ function renderMachineHealthTable(machine) {
               '<span class="health-chevron">&#8250;</span>' +
             '</div>' +
           '</button>' +
-          '<div class="health-detail">' + buildNodeDetails(snapshot, machineInstance) + '</div>' +
+          '<div class="health-detail">' + buildNodeDetails(machine, snapshot, machineInstance) + '</div>' +
         '</div>';
     }).join('') +
     '</div>';
@@ -232,8 +338,13 @@ function renderMachineHealthTable(machine) {
   Array.prototype.forEach.call(tableContainer.querySelectorAll('.health-trigger'), function(button) {
     button.addEventListener('click', function() {
       var instanceId = button.getAttribute('data-instance-id');
-      expandedHealthInstanceId = expandedHealthInstanceId === instanceId ? null : instanceId;
-      renderMachineHealthTable(filteredMachinesList[selectedMachineIndex]);
+      if (expandedHealthInstanceId === instanceId) {
+        expandedHealthInstanceId = null;
+      } else {
+        expandedHealthInstanceId = instanceId;
+        setSelectedMachineInstance(instanceId);
+      }
+      renderSelectedMachine();
     });
   });
 
@@ -266,8 +377,10 @@ function renderSharingState() {
 
 function renderSelectedMachine() {
   var machine = filteredMachinesList[selectedMachineIndex];
+  syncSelectedMachineInstance(machine);
   renderMachineCards();
   renderMachineDetails(machine);
+  renderLaunchSummaryCard(machine);
   renderMachineHealthTable(machine);
 }
 
@@ -275,6 +388,7 @@ function setSelectedMachine(index) {
   if (filteredMachinesList.length === 0) {
     return;
   }
+  setSelectedMachineInstance(null);
   selectedMachineIndex = Math.max(0, Math.min(filteredMachinesList.length - 1, Number(index) || 0));
   expandedHealthInstanceId = null;
   document.getElementById('machineSelect').value = String(selectedMachineIndex);
@@ -314,13 +428,40 @@ function updateMachineDetails() {
   setSelectedMachine(document.getElementById('machineSelect').value);
 }
 
+function revealSelectableNode(machine) {
+  var visibleMachineInstances = getVisibleMachineInstances(machine);
+  if (!visibleMachineInstances.length) {
+    return;
+  }
+
+  if (!expandedHealthInstanceId) {
+    expandedHealthInstanceId = visibleMachineInstances[0].instance_id;
+  }
+}
+
 function initializeMachineForm() {
+  var hostForm;
   populateMachineOptions();
 
-  var hostForm = document.getElementById('machineSelect').form;
+  hostForm = document.getElementById('machineSelect').form;
   if (hostForm) {
     Array.prototype.forEach.call(hostForm.querySelectorAll('button[type="submit"], input[type="submit"]'), function(button) {
       button.classList.add('mlhub-submit-button');
+    });
+
+    hostForm.addEventListener('submit', function(event) {
+      if (selectedMachineInstanceId) {
+        return;
+      }
+
+      revealSelectableNode(getCurrentMachine());
+      renderSelectedMachine();
+      event.preventDefault();
+
+      var nodeHealthCard = document.querySelector('.node-health-card');
+      if (nodeHealthCard) {
+        nodeHealthCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
     });
   }
 }

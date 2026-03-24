@@ -86,6 +86,8 @@ class MachineInstance:
             "hostname": self.display_hostname,
             "endpoint": self.endpoint,
             "assigned_user_count": self.allocation_count,
+            "has_allocations": self.has_allocations,
+            "has_exclusive_allocation": self.has_exclusive_allocation,
         }
 
 
