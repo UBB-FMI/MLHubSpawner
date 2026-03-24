@@ -65,11 +65,12 @@ class JupyterFormBuilder():
             return False
         return default
     
-    def get_html_page(self, dicitonaryList, nodeHealthSnapshots=None, uiContext=None):
+    def get_html_page(self, dicitonaryList, nodeHealthSnapshots=None, uiContext=None, nodeHealthHistory=None):
         payload = {
             "machines": dicitonaryList,
             "nodeHealth": nodeHealthSnapshots or {},
             "uiContext": uiContext or {},
+            "nodeHealthHistory": nodeHealthHistory or {},
         }
         jsonPayload = json.dumps(payload).replace("</", "<\\/")
         return self.form_html_content.replace("{formPayload}", jsonPayload)

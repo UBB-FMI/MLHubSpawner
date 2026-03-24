@@ -2,11 +2,13 @@ var formPayload = {formPayload};
 var machines = formPayload.machines || [];
 var nodeHealth = formPayload.nodeHealth || {};
 var uiContext = formPayload.uiContext || {};
+var nodeHealthHistory = formPayload.nodeHealthHistory || {};
 var filteredMachinesList = machines;
 var selectedMachineIndex = 0;
 var expandedHealthInstanceId = null;
 var preferredSharedAccessRequested = true;
 var userCanRequestExclusive = !!uiContext.canRequestExclusive;
+var selectedHistoryMetricByInstanceId = {};
 
 function escapeHtml(value) {
   return String(value === null || value === undefined ? '' : value)
@@ -29,6 +31,13 @@ function bytesToGiB(bytesValue) {
     return 'n/a';
   }
   return (bytesValue / Math.pow(1024, 3)).toFixed(2) + ' GiB';
+}
+
+function bytesToGiBNumeric(bytesValue) {
+  if (bytesValue === null || bytesValue === undefined) {
+    return null;
+  }
+  return bytesValue / Math.pow(1024, 3);
 }
 
 function formatPercent(value) {
@@ -131,4 +140,15 @@ function machineSupportsSharing(machine) {
 
 function isSharingForced(machine) {
   return machineSupportsSharing(machine) && !userCanRequestExclusive;
+}
+
+function getSelectedHistoryMetric(instanceId) {
+  if (!selectedHistoryMetricByInstanceId[instanceId]) {
+    selectedHistoryMetricByInstanceId[instanceId] = 'fitness';
+  }
+  return selectedHistoryMetricByInstanceId[instanceId];
+}
+
+function setSelectedHistoryMetric(instanceId, metricKey) {
+  selectedHistoryMetricByInstanceId[instanceId] = metricKey;
 }

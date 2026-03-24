@@ -95,9 +95,55 @@ function renderMachineDetails(machine) {
   renderSharingState();
 }
 
-function buildNodeDetails(snapshot) {
+function formatAssignedUserCount(machineInstance) {
+  var assignedUserCount = machineInstance && machineInstance.assigned_user_count !== undefined
+    ? Number(machineInstance.assigned_user_count)
+    : 0;
+  var label = assignedUserCount === 1 ? 'person assigned' : 'people assigned';
+  return assignedUserCount + ' ' + label;
+}
+
+function buildNodeHistoryMetricOptions(machineInstance) {
+  var selectedMetric = getSelectedHistoryMetric(machineInstance.instance_id);
+  var metricOptions = [
+    { value: 'fitness', label: 'Fitness history' },
+    { value: 'cpu', label: 'CPU usage history' },
+    { value: 'vram', label: 'VRAM usage history' },
+    { value: 'assigned', label: 'People assigned history' }
+  ];
+
+  return metricOptions.map(function(metricOption) {
+    return '<option value="' + escapeHtml(metricOption.value) + '"' + (selectedMetric === metricOption.value ? ' selected' : '') + '>' + escapeHtml(metricOption.label) + '</option>';
+  }).join('');
+}
+
+function buildNodeHistoryMarkup(machineInstance) {
+  return '' +
+    '<div class="node-history-panel" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '">' +
+      '<div class="node-history-toolbar">' +
+        '<div>' +
+          '<div class="node-history-title">History</div>' +
+          '<div class="node-history-copy">Pick a metric to plot up to 16 sampled points from the retained node history.</div>' +
+        '</div>' +
+        '<label class="node-history-control">' +
+          '<span class="node-history-control-label">Metric</span>' +
+          '<select class="node-history-select">' + buildNodeHistoryMetricOptions(machineInstance) + '</select>' +
+        '</label>' +
+      '</div>' +
+      '<div class="node-history-summary"></div>' +
+      '<div class="node-history-plot"></div>' +
+    '</div>';
+}
+
+function buildNodeDetails(snapshot, machineInstance) {
+  var historyMarkup = buildNodeHistoryMarkup(machineInstance);
   if (!snapshot) {
-    return '<div class="health-empty">This node is offline or has not reported telemetry yet.</div>';
+    return '' +
+      '<div class="health-detail-grid">' +
+        '<div class="health-detail-card"><span class="health-detail-label">Assignments</span><span class="health-detail-value">' + escapeHtml(formatAssignedUserCount(machineInstance)) + '</span></div>' +
+      '</div>' +
+      '<div class="health-empty">This node is offline or has not reported telemetry yet.</div>' +
+      historyMarkup;
   }
 
   var cpuText = snapshot.cpu_usage_pct !== null && snapshot.cpu_usage_pct !== undefined
@@ -127,17 +173,21 @@ function buildNodeDetails(snapshot) {
     : '';
 
   return '' +
-    '<div class="health-detail-grid">' +
-      '<div class="health-detail-card"><span class="health-detail-label">Fitness</span><span class="health-detail-value">' + escapeHtml(fitnessText) + '</span></div>' +
-      '<div class="health-detail-card"><span class="health-detail-label">RAM used</span><span class="health-detail-value">' + escapeHtml(ramText) + '</span></div>' +
-      '<div class="health-detail-card"><span class="health-detail-label">CPU usage</span><span class="health-detail-value">' + escapeHtml(cpuText) + '</span></div>' +
-    '</div>' +
-    '<div class="health-gpu-list">' + gpuInfo + '</div>' +
-    errorMarkup;
+      '<div class="health-detail-grid">' +
+        '<div class="health-detail-card"><span class="health-detail-label">Fitness</span><span class="health-detail-value">' + escapeHtml(fitnessText) + '</span></div>' +
+        '<div class="health-detail-card"><span class="health-detail-label">Assignments</span><span class="health-detail-value">' + escapeHtml(formatAssignedUserCount(machineInstance)) + '</span></div>' +
+        '<div class="health-detail-card"><span class="health-detail-label">RAM used</span><span class="health-detail-value">' + escapeHtml(ramText) + '</span></div>' +
+        '<div class="health-detail-card"><span class="health-detail-label">CPU usage</span><span class="health-detail-value">' + escapeHtml(cpuText) + '</span></div>' +
+      '</div>' +
+      '<div class="health-gpu-list">' + gpuInfo + '</div>' +
+      historyMarkup +
+      errorMarkup;
 }
 
 function renderMachineHealthTable(machine) {
   var tableContainer = document.getElementById('machineHealthTable');
+  destroyNodeHistoryPlots();
+
   if (!machine || getMachineInstances(machine).length === 0) {
     tableContainer.innerHTML = '<div class="health-empty">No machine instances available for this profile.</div>';
     return;
@@ -158,14 +208,14 @@ function renderMachineHealthTable(machine) {
       var color = getHealthColor(snapshot);
       var statusMeta = getStatusMeta(snapshot);
       var isOpen = expandedHealthInstanceId === machineInstance.instance_id;
-      var subtitle = offline ? 'Node is currently unavailable' : 'Click to inspect current load';
+      var subtitle = escapeHtml(formatAssignedUserCount(machineInstance)) + ' · ' + escapeHtml(offline ? 'Node is currently unavailable' : 'Click to inspect current load');
 
       return '' +
         '<div class="health-item ' + (isOpen ? 'is-open' : '') + '">' +
           '<button type="button" class="health-trigger" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
             '<div class="health-main">' +
               '<div class="health-host">' + escapeHtml(displayHostname(machineInstance)) + '</div>' +
-              '<div class="health-subtitle">' + escapeHtml(subtitle) + '</div>' +
+              '<div class="health-subtitle">' + subtitle + '</div>' +
               '<div class="health-bar"><div class="health-bar-fill" style="width:' + escapeHtml(barWidth) + '%; background:' + escapeHtml(color) + ';"></div></div>' +
             '</div>' +
             '<div class="health-meta">' +
@@ -174,7 +224,7 @@ function renderMachineHealthTable(machine) {
               '<span class="health-chevron">&#8250;</span>' +
             '</div>' +
           '</button>' +
-          '<div class="health-detail">' + buildNodeDetails(snapshot) + '</div>' +
+          '<div class="health-detail">' + buildNodeDetails(snapshot, machineInstance) + '</div>' +
         '</div>';
     }).join('') +
     '</div>';
@@ -185,6 +235,20 @@ function renderMachineHealthTable(machine) {
       expandedHealthInstanceId = expandedHealthInstanceId === instanceId ? null : instanceId;
       renderMachineHealthTable(filteredMachinesList[selectedMachineIndex]);
     });
+  });
+
+  Array.prototype.forEach.call(tableContainer.querySelectorAll('.node-history-panel'), function(panel) {
+    var metricSelect = panel.querySelector('.node-history-select');
+    if (!metricSelect) {
+      return;
+    }
+
+    metricSelect.addEventListener('change', function() {
+      setSelectedHistoryMetric(panel.getAttribute('data-instance-id'), metricSelect.value);
+      renderNodeHistoryPanel(panel);
+    });
+
+    renderNodeHistoryPanel(panel);
   });
 }
 

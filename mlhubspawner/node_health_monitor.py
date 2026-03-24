@@ -6,8 +6,9 @@ import logging
 import os
 import shlex
 import time
+from collections import deque
 from dataclasses import asdict, dataclass, field
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Deque, Dict, List, Optional, Sequence, Tuple
 
 from .machine_registry import MachineInstance, MachineRegistry, normalize_endpoint
 
@@ -17,6 +18,7 @@ DEFAULT_MONITOR_KEY_PATH = "~/.ssh/id_rsa"
 DEFAULT_POLL_INTERVAL_SECONDS = 30
 DEFAULT_CONNECT_TIMEOUT_SECONDS = 10
 DEFAULT_STALE_AFTER_SECONDS = 90
+DEFAULT_HISTORY_LIMIT = 600
 
 
 @dataclass
@@ -44,6 +46,7 @@ class NodeSnapshot:
     endpoint: str
     hostname: str
     ssh_port: int
+    assigned_user_count: int = 0
     last_success_at: Optional[float] = None
     last_attempt_at: Optional[float] = None
     last_error: Optional[str] = None
@@ -64,6 +67,7 @@ class NodeSnapshot:
             endpoint=machine_instance.endpoint,
             hostname=machine_instance.hostname,
             ssh_port=machine_instance.ssh_port,
+            assigned_user_count=machine_instance.allocation_count,
         )
 
 
@@ -123,6 +127,7 @@ class NodeHealthMonitor:
         poll_interval_seconds: int = DEFAULT_POLL_INTERVAL_SECONDS,
         connect_timeout_seconds: int = DEFAULT_CONNECT_TIMEOUT_SECONDS,
         stale_after_seconds: int = DEFAULT_STALE_AFTER_SECONDS,
+        history_limit: int = DEFAULT_HISTORY_LIMIT,
         scorer: Optional[NodeFitnessScorer] = None,
         time_fn=time.time,
     ):
@@ -133,11 +138,13 @@ class NodeHealthMonitor:
         self.poll_interval_seconds = poll_interval_seconds
         self.connect_timeout_seconds = connect_timeout_seconds
         self.stale_after_seconds = stale_after_seconds
+        self.history_limit = max(1, int(history_limit))
         self.scorer = scorer or NodeFitnessScorer()
         self.time_fn = time_fn
 
         self._task: Optional[asyncio.Task] = None
         self._cache: Dict[MachineInstance, NodeSnapshot] = {}
+        self._history: Dict[MachineInstance, Deque[NodeSnapshot]] = {}
 
     def start(self) -> bool:
         if self._task is not None and not self._task.done():
@@ -175,6 +182,7 @@ class NodeHealthMonitor:
         for cached_machine_instance in list(self._cache.keys()):
             if cached_machine_instance not in active_instances:
                 del self._cache[cached_machine_instance]
+                self._history.pop(cached_machine_instance, None)
 
         if not machine_instances:
             return
@@ -196,10 +204,28 @@ class NodeHealthMonitor:
             return None
         return copy.deepcopy(snapshot)
 
+    def get_snapshot_history(self, machine_instance: MachineInstance) -> Tuple[NodeSnapshot, ...]:
+        if machine_instance is None:
+            return ()
+
+        history = self._history.get(machine_instance)
+        if history is None:
+            return ()
+        return tuple(copy.deepcopy(list(history)))
+
     def get_all_snapshot_payloads(self) -> Dict[str, Dict[str, object]]:
         return {
             machine_instance.instance_id: asdict(copy.deepcopy(snapshot))
             for machine_instance, snapshot in self._cache.items()
+        }
+
+    def get_all_snapshot_history_payloads(self) -> Dict[str, List[Dict[str, object]]]:
+        return {
+            machine_instance.instance_id: [
+                _snapshot_history_payload(snapshot)
+                for snapshot in copy.deepcopy(list(history))
+            ]
+            for machine_instance, history in self._history.items()
         }
 
     def get_snapshot_payload(self, machine_instance: MachineInstance) -> Optional[Dict[str, object]]:
@@ -207,6 +233,13 @@ class NodeHealthMonitor:
         if snapshot is None:
             return None
         return asdict(snapshot)
+
+    def _remember_snapshot(self, machine_instance: MachineInstance, snapshot: NodeSnapshot):
+        history = self._history.setdefault(
+            machine_instance,
+            deque(maxlen=self.history_limit),
+        )
+        history.append(copy.deepcopy(snapshot))
 
     async def _run_loop(self):
         try:
@@ -239,6 +272,7 @@ class NodeHealthMonitor:
                 endpoint=machine_instance.endpoint,
                 hostname=machine_instance.hostname,
                 ssh_port=machine_instance.ssh_port,
+                assigned_user_count=machine_instance.allocation_count,
                 last_success_at=now,
                 last_attempt_at=now,
                 last_error=None,
@@ -252,6 +286,7 @@ class NodeHealthMonitor:
                 fitness_score=fitness_score,
                 previous_cpu_sample=collected_metrics.cpu_sample,
             )
+            self._remember_snapshot(machine_instance, self._cache[machine_instance])
             self.log.debug(
                 "[NodeHealthMonitor] Refreshed metrics for %s with fitness %s.",
                 machine_instance.instance_id,
@@ -264,7 +299,9 @@ class NodeHealthMonitor:
             failure_snapshot.last_error = str(error)
             failure_snapshot.healthy = False
             failure_snapshot.stale = stale
+            failure_snapshot.assigned_user_count = machine_instance.allocation_count
             self._cache[machine_instance] = failure_snapshot
+            self._remember_snapshot(machine_instance, failure_snapshot)
             self.log.info(
                 "[NodeHealthMonitor] Failed to refresh %s: %s",
                 machine_instance.instance_id,
@@ -469,6 +506,25 @@ def _normalize_cpu_fields(cpu_sample: Tuple[int, ...]) -> Tuple[int, ...]:
 
 def _clamp_ratio(value: float) -> float:
     return max(0.0, min(1.0, value))
+
+
+def _snapshot_history_payload(snapshot: NodeSnapshot) -> Dict[str, object]:
+    gpu_memory_used_bytes = None
+    gpu_memory_total_bytes = None
+    if snapshot.healthy and not snapshot.stale and snapshot.gpus:
+        gpu_memory_used_bytes = sum(gpu.memory_used_bytes for gpu in snapshot.gpus)
+        gpu_memory_total_bytes = sum(gpu.memory_total_bytes for gpu in snapshot.gpus)
+
+    return {
+        "recorded_at": int(round(snapshot.last_attempt_at)) if snapshot.last_attempt_at is not None else None,
+        "fitness_score": snapshot.fitness_score if snapshot.healthy and not snapshot.stale else None,
+        "cpu_usage_pct": snapshot.cpu_usage_pct if snapshot.healthy and not snapshot.stale else None,
+        "gpu_memory_used_bytes": gpu_memory_used_bytes,
+        "gpu_memory_total_bytes": gpu_memory_total_bytes,
+        "assigned_user_count": snapshot.assigned_user_count,
+        "healthy": snapshot.healthy,
+        "stale": snapshot.stale,
+    }
 
 
 def _load_asyncssh():

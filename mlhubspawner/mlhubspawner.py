@@ -125,6 +125,12 @@ class MLHubSpawner(Spawner):
             return {}
         return cls._node_health_monitor.get_all_snapshot_payloads()
 
+    def get_node_health_snapshot_history_payloads(self):
+        cls = type(self)
+        if cls._node_health_monitor is None:
+            return {}
+        return cls._node_health_monitor.get_all_snapshot_history_payloads()
+
     def get_node_health_snapshot_payload(self, machine_instance: MachineInstance):
         cls = type(self)
         if cls._node_health_monitor is None:
@@ -287,10 +293,11 @@ class MLHubSpawner(Spawner):
 
         return self.form_builder.get_html_page(
             available_remote_hosts_dictionary,
-            self.get_node_health_snapshot_payloads(),
-            {
+            nodeHealthSnapshots=self.get_node_health_snapshot_payloads(),
+            uiContext={
                 "canRequestExclusive": self.user_privilege_level >= 1,
             },
+            nodeHealthHistory=self.get_node_health_snapshot_history_payloads(),
         )
 
     # Parse the form data into the correct types. The values here are available in the "start" method as "self.user_options"

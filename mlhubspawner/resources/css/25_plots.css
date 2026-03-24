@@ -1,0 +1,91 @@
+.node-history-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background:
+    radial-gradient(circle at top right, rgba(79, 209, 197, 0.06), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018));
+}
+
+.node-history-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.node-history-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.node-history-copy {
+  margin-top: 4px;
+  color: var(--mlhub-muted);
+  line-height: 1.45;
+}
+
+.node-history-control {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.node-history-control-label {
+  color: var(--mlhub-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.node-history-select {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(13, 18, 24, 0.82);
+  color: var(--mlhub-text);
+}
+
+.node-history-summary {
+  margin-top: 12px;
+  color: #d0d8e3;
+  line-height: 1.5;
+}
+
+.node-history-plot {
+  min-height: 240px;
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(5, 10, 18, 0.22);
+}
+
+.node-history-plot .health-empty {
+  min-height: 218px;
+  display: flex;
+  align-items: center;
+}
+
+.node-history-plot .uplot {
+  font-family: inherit;
+}
+
+@media (max-width: 720px) {
+  .node-history-toolbar {
+    flex-direction: column;
+  }
+
+  .node-history-control {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .node-history-plot {
+    min-height: 220px;
+    padding: 8px;
+  }
+}
