@@ -1,4 +1,5 @@
 build/
 dist/
 mlhubspawner.egg-info
+__pycache__/
 SECERTS.md

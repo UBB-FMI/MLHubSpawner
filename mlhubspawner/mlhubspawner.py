@@ -11,6 +11,7 @@ from .exceptions.jupyter_html_exception import JupyterHubHTMLException
 from .state_manager import spawner_load_state, spawner_get_state, spawner_clear_state
 from .account_manager import get_privilege, get_safe_username
 from .machine_manager import MachineManager
+from .node_health_monitor import NodeHealthMonitor
 from .notebook_manager import NotebookManager
 from .minio_manager import MinIOManager
 
@@ -37,6 +38,9 @@ class MLHubSpawner(Spawner):
     # Class-level singleton instance for MinIOManager
     _minio_manager = None
 
+    # Class-level singleton instance for node health monitoring
+    _node_health_monitor = None
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -53,6 +57,9 @@ class MLHubSpawner(Spawner):
         if (cls._minio_manager is None) and (self.minio_url):
             cls._minio_manager = MinIOManager(self.minio_url, self.minio_access_key, self.minio_secret_key)
 
+        if cls._node_health_monitor is None:
+            cls._node_health_monitor = NodeHealthMonitor(self.log, self.remote_hosts)
+
         #=== NORMAL INIT ===
         self.user_unique_identifier = self.user.name
         self.user_safe_username = get_safe_username(self.user.name) # This is already set here already
@@ -66,6 +73,24 @@ class MLHubSpawner(Spawner):
         self.state_notebook_port = None
 
         self.machine_offers = {}
+        self._ensure_node_health_monitor_started()
+
+    def _ensure_node_health_monitor_started(self):
+        cls = type(self)
+        if cls._node_health_monitor is not None:
+            cls._node_health_monitor.start()
+
+    def get_node_health_snapshots(self):
+        cls = type(self)
+        if cls._node_health_monitor is None:
+            return {}
+        return cls._node_health_monitor.get_all_snapshots()
+
+    def get_node_health_snapshot(self, hostname_or_hostport: str):
+        cls = type(self)
+        if cls._node_health_monitor is None:
+            return None
+        return cls._node_health_monitor.get_snapshot(hostname_or_hostport)
 
     #==== STARTING, STOPPPING, POLLING ====
     def __slowError(self, errorMessage : str):
@@ -212,4 +237,3 @@ class MLHubSpawner(Spawner):
     # Parse the form data into the correct types. The values here are available in the "start" method as "self.user_options"
     def options_from_form(self, formdata):
         return self.form_builder.get_form_options(formdata)
-
