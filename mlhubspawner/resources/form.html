@@ -193,19 +193,22 @@
     min-height: 48px;
     padding: 0 18px;
     border-radius: 16px;
-    border: 1px solid rgba(255, 236, 220, 0.24);
-    background: linear-gradient(135deg, #ffbf90, #ff8d3f);
-    color: #3f1700;
+    border: 1px solid rgba(191, 77, 0, 0.34);
+    background: linear-gradient(135deg, #ff8d3f, #d95b00);
+    color: #2b1200;
     font-size: 15px;
     font-weight: 800;
     text-decoration: none;
     box-shadow: 0 18px 34px rgba(25, 9, 0, 0.26);
+    transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
   }
 
   .mlhub-support-link:hover {
+    border-color: rgba(255, 236, 220, 0.24);
+    background: linear-gradient(135deg, #ffbf90, #ff8d3f);
     color: #3f1700;
     text-decoration: none;
-    filter: brightness(1.02);
+    transform: translateY(-1px);
   }
 
   .mlhub-layout {
@@ -797,7 +800,6 @@
 <div class="mlhub-shell">
   <section class="mlhub-hero">
     <div>
-      <span class="mlhub-eyebrow">Production Cluster</span>
       <h2 class="mlhub-hero-title">Choose your machine type and inspect the live nodes behind it.</h2>
       <p class="mlhub-hero-copy">
         Start with the hardware profile you need, then expand the node list below to inspect current VRAM, RAM, GPU, and CPU usage before launching your session.
@@ -822,13 +824,12 @@
   <div class="mlhub-layout">
     <section class="mlhub-column">
       <div class="mlhub-card">
-        <div class="mlhub-card-header">
-          <div>
-            <h3 class="mlhub-card-title">Choose your machine type</h3>
-            <p class="mlhub-card-copy">Each card shows the main hardware profile and the best live health score currently available for that type.</p>
-          </div>
-          <span class="mlhub-card-tag">Pick one</span>
+      <div class="mlhub-card-header">
+        <div>
+          <h3 class="mlhub-card-title">Choose your machine type</h3>
+          <p class="mlhub-card-copy">Each card shows the main hardware profile and the best live health score currently available for that type.</p>
         </div>
+      </div>
 
         <label for="machineSelect" class="sr-only">Select your machine type</label>
         <select class="machine-select-native" name="machineSelect" id="machineSelect" onchange="updateMachineDetails();"></select>
@@ -848,7 +849,6 @@
         <h3 class="mlhub-card-title">Node health</h3>
         <p class="mlhub-card-copy">Click any node to expand its current usage details. Health scores closer to 100 mean more headroom.</p>
       </div>
-      <span class="mlhub-card-tag">Click to inspect</span>
     </div>
     <div id="machineHealthTable"></div>
   </div>
@@ -1078,7 +1078,6 @@
           '<h3 class="mlhub-card-title">Allow session sharing</h3>' +
           '<p class="mlhub-card-copy">Session sharing is enabled by default so users do not request exclusive nodes by mistake.</p>' +
         '</div>' +
-        '<span class="mlhub-card-tag">Session policy</span>' +
       '</div>' +
       '<p class="mlhub-card-copy">Selected machine type: ' + escapeHtml(machine.codename || 'Unnamed') + '.</p>' +
       sessionOptionsMarkup;
