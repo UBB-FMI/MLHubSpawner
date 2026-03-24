@@ -1,6 +1,6 @@
 
 # JupyterHub imports
-from traitlets import List, Instance, Unicode
+from traitlets import Integer, List, Unicode
 from jupyterhub.spawner import Spawner
 
 # Local imports
@@ -14,7 +14,7 @@ from .machine_manager import MachineManager
 from .machine_registry import MachineInstance, MachineRegistry
 from .node_health_monitor import NodeHealthMonitor
 from .notebook_manager import NotebookManager
-from .minio_manager import MinIOManager
+from .user_manager import UserManager
 
 # Python imports
 import time
@@ -25,20 +25,20 @@ class MLHubSpawner(Spawner):
 
     # Remote hosts read from the configuration file. This is initialized per-instance!!
     remote_hosts = List(DictionaryInstanceParser(RemoteMLHost), help="Possible remote hosts from which to choose remote_host.", config=True)
-
-    # MinIO credentials and URLs
-    minio_url = Unicode(help="The URL endpoint for the MinIO server.", config=True)
-    minio_access_key = Unicode(help="Access key for MinIO authentication.", config=True)
-    minio_secret_key = Unicode(help="Secret key for MinIO authentication.", config=True)
+    ldap_uri = Unicode("ldap://172.30.0.56", help="LDAP server URI used for notebook user provisioning.").tag(config=True)
+    ldap_base_dn = Unicode("dc=mlhub,dc=fmi", help="LDAP base DN for MLHub user provisioning.").tag(config=True)
+    ldap_users_dn = Unicode("ou=Users,dc=mlhub,dc=fmi", help="LDAP subtree where MLHub user entries are stored.").tag(config=True)
+    ldap_bind_cn = Unicode("cn=nslcd,dc=mlhub,dc=fmi", help="LDAP bind account CN or full bind DN used to create notebook users.").tag(config=True)
+    ldap_bind_password = Unicode("", help="LDAP bind password used to create notebook users.").tag(config=True, private_info=True)
+    ldap_home_prefix = Unicode("/bigdata", help="Prefix used when building LDAP homeDirectory values.").tag(config=True)
+    ldap_students_gid = Integer(20000, help="gidNumber assigned to student notebook users.").tag(config=True)
+    ldap_teachers_gid = Integer(20001, help="gidNumber assigned to teacher notebook users.").tag(config=True)
 
     # Class-level MachineManager for load balancing
     _machine_manager = None
 
     # Class-level Lock for machine allocation
     _machine_manager_lock = None
-
-    # Class-level singleton instance for MinIOManager
-    _minio_manager = None
 
     # Class-level singleton instance for node health monitoring
     _node_health_monitor = None
@@ -71,10 +71,6 @@ class MLHubSpawner(Spawner):
         if cls._machine_manager_lock is None:
             cls._machine_manager_lock = Lock()
 
-        # Initialize MinIOManager singleton if not already created.
-        if (cls._minio_manager is None) and (self.minio_url):
-            cls._minio_manager = MinIOManager(self.minio_url, self.minio_access_key, self.minio_secret_key)
-
         if cls._node_health_monitor is None:
             cls._node_health_monitor = NodeHealthMonitor(self.log, cls._machine_registry)
 
@@ -84,6 +80,17 @@ class MLHubSpawner(Spawner):
         self.user_privilege_level = get_privilege(self.user.name)
 
         self.form_builder = JupyterFormBuilder()
+        self.user_manager = UserManager(
+            self.log,
+            ldap_uri=self.ldap_uri,
+            ldap_base_dn=self.ldap_base_dn,
+            ldap_users_dn=self.ldap_users_dn,
+            ldap_bind_cn=self.ldap_bind_cn,
+            ldap_bind_password=self.ldap_bind_password,
+            ldap_home_prefix=self.ldap_home_prefix,
+            ldap_students_gid=self.ldap_students_gid,
+            ldap_teachers_gid=self.ldap_teachers_gid,
+        )
         self.notebook_manager = NotebookManager(self.log,"jupyterhub-singleuser --config=~/.jupyter/jupyter_notebook_config.py --ip 0.0.0.0", self.user_safe_username)
 
         self.state_pid = 0
@@ -224,32 +231,11 @@ class MLHubSpawner(Spawner):
             self.__slowError(allocation_error_message)
 
         try:
-            #=== CREATE BUCKET ===
-            if self.minio_url:
-                try:
-                    auth_state = await self.user.get_auth_state()
-                    
-                    if not auth_state or 'user' not in auth_state:
-                        self.__slowError("Authentication state is missing. Did you log in via OAuth?")
-
-                    # try Azure OID first
-                    azure_id = auth_state['user'].get('oid')
-                    if not azure_id:
-                        # fall back to a sanitized UID
-                        raw_uid = getattr(self, "user_unique_identifier", "") or ""
-                        azure_id = self.__class__._minio_manager.generate_fallback_oid(raw_uid)
-                        self.log.info(f"No Azure OID found; using fallback ID: {azure_id}")
-
-                    # now create the bucket using either the real OID or our fallback
-                    if not self.__class__._minio_manager.create(azure_id):
-                        self.__slowError(f"Bucket creation failed for user with ID: {azure_id}.")
-                    else:
-                        self.log.info(f"Bucket successfully created (or already exists) for user with ID: {azure_id}.")
-                except Exception as error:
-                    self.__slowError(f"Error during bucket creation: {error}")
-            else:
-                self.log.info("Minio URL not provided in config, skipping bucket creation")
-
+            #=== CREATE USER ===
+            await self.user_manager.ensure_user_exists(
+                self.user_unique_identifier,
+                self.user_safe_username,
+            )
 
             #=== LAUNCH NOTEBOOK ===
             host_ip = selected_machine_instance.hostname

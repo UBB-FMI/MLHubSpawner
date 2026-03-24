@@ -15,6 +15,11 @@ setup_args = dict(
     url="https://www.cs.ubbcluj.ro",
     license="GPL-V3",
     platforms="Linux",
+    install_requires=[
+        "asyncssh",
+        "jupyterhub",
+        "ldap3",
+    ],
     keywords=['Interactive', 'Interpreter', 'Shell', 'Web'],
     classifiers=[
         'Intended Audience :: Developers',

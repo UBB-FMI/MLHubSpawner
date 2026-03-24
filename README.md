@@ -6,10 +6,6 @@ The machines need to also have 'jupyterlab' installed for this to work.
 
 TODO: Document more about the host setup
 
-## Specific requirements
-
-Since this spawner is closely integrated with MinIO, some specific setup is required for the authenticator. In this particular instance, authentication is done with OAuthenticator, and some fields are used internally, such as the `oid` field. For this reason, storing the full authentication data for users is required, using `c.OAuthenticator.enable_auth_state = True` in Jupyter's config file. 
-
 ## Features
 
 - **High-Performance Access:**  

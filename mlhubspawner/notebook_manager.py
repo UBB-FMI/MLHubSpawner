@@ -13,26 +13,25 @@ class NotebookManager():
         # The safe username is static, unique to this instance of the manager, and never changes. It's therefore safe to set it here, and just re-use it everywhere.
         self.safe_username = safe_username
 
-    async def warmup_connection(self, host_ip: str, host_port: int, ssh_key_path: str):
-        """
-        Perform a simple SSH connection to trigger user creation on the backend.
-        This warmup connection uses password authentication with a hardcoded password "password".
-        The result is intentionally ignored.
-        """
-        self.log.info(f"Performing warmup connection to {host_ip}:{host_port} with user {self.safe_username}.")
+    async def probe_connection(self, host_ip: str, host_port: int):
+        self.log.info(
+            "Probing SSH on %s:%s with user %s before key-based launch.",
+            host_ip,
+            host_port,
+            self.safe_username,
+        )
         try:
             async with asyncssh.connect(
                 host_ip,
                 port=host_port,
                 username=self.safe_username,
-                password="password",  # hardcoded password for warmup
+                password="bogus-password",
                 known_hosts=None,
                 connect_timeout=10
-            ) as conn:
-                # Run a simple echo command; the result is not used.
-                await conn.run("echo warmup", check=False)
-        except Exception as e:
-            self.log.info(f"Warmup connection encountered an exception (expected if user is new): {e}")
+            ):
+                pass
+        except Exception as error:
+            self.log.info("SSH probe finished with expected failure for %s: %s", self.safe_username, error)
 
     async def launch_notebook(self, jupyter_env: dict, hub_api_url: str, host_ip: str, host_port: str):
 
@@ -45,9 +44,7 @@ class NotebookManager():
         # Save connection info for later use.
         self.remote_ip = host_ip
         self.host_port = int(host_port)
-
-        # Perform a preliminary warmup connection.
-        await self.warmup_connection(host_ip, self.host_port, ssh_key_path)
+        await self.probe_connection(host_ip, self.host_port)
 
         for attempt in range(max_attempts):
             random_port = random.randint(2000, 65535)
@@ -210,4 +207,3 @@ class NotebookManager():
         # One-line info log, however long it gets
         self.log.info(f"Successfully restored notebook state: PID={self.pid}, notebook_port={self.port}, remote_ip={self.remote_ip}, ssh_port={self.host_port}")
         return True
-
