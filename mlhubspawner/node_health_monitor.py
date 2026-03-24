@@ -181,21 +181,32 @@ class NodeHealthMonitor:
 
         await asyncio.gather(*(self._refresh_machine_instance(machine_instance) for machine_instance in machine_instances))
 
-    def get_all_snapshots(self) -> Dict[str, Dict[str, object]]:
+    def get_all_snapshots(self) -> Dict[MachineInstance, NodeSnapshot]:
         return {
-            machine_instance.instance_id: asdict(copy.deepcopy(snapshot))
+            machine_instance: copy.deepcopy(snapshot)
             for machine_instance, snapshot in self._cache.items()
         }
 
-    def get_snapshot(self, machine_instance_identifier_or_endpoint: str) -> Optional[Dict[str, object]]:
-        machine_instance = self.machine_registry.resolve_instance(machine_instance_identifier_or_endpoint)
+    def get_snapshot(self, machine_instance: MachineInstance) -> Optional[NodeSnapshot]:
         if machine_instance is None:
             return None
 
         snapshot = self._cache.get(machine_instance)
         if snapshot is None:
             return None
-        return asdict(copy.deepcopy(snapshot))
+        return copy.deepcopy(snapshot)
+
+    def get_all_snapshot_payloads(self) -> Dict[str, Dict[str, object]]:
+        return {
+            machine_instance.instance_id: asdict(copy.deepcopy(snapshot))
+            for machine_instance, snapshot in self._cache.items()
+        }
+
+    def get_snapshot_payload(self, machine_instance: MachineInstance) -> Optional[Dict[str, object]]:
+        snapshot = self.get_snapshot(machine_instance)
+        if snapshot is None:
+            return None
+        return asdict(snapshot)
 
     async def _run_loop(self):
         try:

@@ -1,91 +1,814 @@
 <style>
-  /* Tighter spacing for the details section paragraphs */
-  .details-list p {
-    margin: 0;
-    margin-bottom: 5px;
+  :root {
+    --mlhub-bg: #151c23;
+    --mlhub-panel: #1d252e;
+    --mlhub-panel-strong: #222c37;
+    --mlhub-panel-soft: #263240;
+    --mlhub-border: rgba(214, 223, 235, 0.12);
+    --mlhub-text: #eef3f8;
+    --mlhub-muted: #9ba8b9;
+    --mlhub-accent: #ff7a1a;
+    --mlhub-accent-strong: #ff9447;
+    --mlhub-accent-soft: rgba(255, 122, 26, 0.16);
+    --mlhub-cyan: #4fd1c5;
+    --mlhub-good: #38c172;
+    --mlhub-warn: #f6c445;
+    --mlhub-bad: #f87171;
+    --mlhub-shadow: 0 24px 60px rgba(5, 10, 18, 0.28);
+    --mlhub-radius-xl: 24px;
+    --mlhub-radius-lg: 18px;
+    --mlhub-radius-md: 14px;
   }
 
-  .machine-health-table {
+  .mlhub-shell {
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 12px;
+    max-width: 1260px;
+    margin: 28px auto 36px;
+    box-sizing: border-box;
+    color: var(--mlhub-text);
   }
 
-  .machine-health-table th,
-  .machine-health-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #e5e7eb;
-    text-align: left;
-    vertical-align: middle;
+  .mlhub-shell a {
+    color: #8ccfff;
   }
 
-  .machine-health-table th {
-    font-size: 12px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #6b7280;
+  .mlhub-shell p {
+    margin: 0;
   }
 
-  .health-indicator {
+  .mlhub-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 28px 30px;
+    border: 1px solid var(--mlhub-border);
+    border-radius: var(--mlhub-radius-xl);
+    background:
+      radial-gradient(circle at top right, rgba(79, 209, 197, 0.22), transparent 34%),
+      radial-gradient(circle at left center, rgba(255, 122, 26, 0.16), transparent 28%),
+      linear-gradient(145deg, rgba(30, 39, 49, 0.96), rgba(21, 28, 35, 0.98));
+    box-shadow: var(--mlhub-shadow);
+  }
+
+  .mlhub-hero::after {
+    content: "";
+    position: absolute;
+    inset: auto -80px -120px auto;
+    width: 220px;
+    height: 220px;
+    border-radius: 999px;
+    background: rgba(255, 148, 71, 0.12);
+    filter: blur(10px);
+  }
+
+  .mlhub-hero-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .mlhub-eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--mlhub-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .mlhub-eyebrow::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--mlhub-accent);
+    box-shadow: 0 0 0 6px rgba(255, 122, 26, 0.12);
+  }
+
+  .mlhub-hero h2 {
+    margin: 14px 0 10px;
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .mlhub-hero-copy {
+    max-width: 760px;
+    color: #d0d8e3;
+    font-size: 18px;
+    line-height: 1.55;
+  }
+
+  .mlhub-link-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .mlhub-link-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--mlhub-text);
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  .mlhub-link-pill:hover {
+    background: rgba(255, 255, 255, 0.06);
+    text-decoration: none;
+  }
+
+  .mlhub-mini-board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(110px, 1fr));
+    gap: 12px;
+    min-width: min(100%, 360px);
+  }
+
+  .mlhub-mini-stat {
+    padding: 16px 16px 14px;
+    border-radius: var(--mlhub-radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(7, 11, 16, 0.22);
+    backdrop-filter: blur(10px);
+  }
+
+  .mlhub-mini-stat-label {
+    display: block;
+    color: var(--mlhub-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .mlhub-mini-stat-value {
+    display: block;
+    margin-top: 8px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+  }
+
+  .mlhub-mini-stat-note {
+    display: block;
+    margin-top: 4px;
+    color: #c2ccd9;
+    font-size: 13px;
+  }
+
+  .mlhub-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.95fr);
+    gap: 22px;
+    margin-top: 22px;
+  }
+
+  .mlhub-column {
+    display: grid;
+    gap: 22px;
+    align-content: start;
+  }
+
+  .mlhub-card {
+    padding: 24px;
+    border: 1px solid var(--mlhub-border);
+    border-radius: var(--mlhub-radius-xl);
+    background:
+      linear-gradient(180deg, rgba(34, 44, 55, 0.92), rgba(26, 34, 42, 0.96));
+    box-shadow: var(--mlhub-shadow);
+  }
+
+  .mlhub-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
+
+  .mlhub-card-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .mlhub-card-copy {
+    margin-top: 6px;
+    color: var(--mlhub-muted);
+    line-height: 1.5;
+  }
+
+  .mlhub-card-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: var(--mlhub-accent-soft);
+    color: #ffd8be;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .machine-select-native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .machine-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+
+  .machine-card {
+    position: relative;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+      rgba(17, 23, 30, 0.78);
+    color: var(--mlhub-text);
+    text-align: left;
+    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    cursor: pointer;
+  }
+
+  .machine-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 148, 71, 0.4);
+    box-shadow: 0 18px 30px rgba(4, 8, 14, 0.28);
+  }
+
+  .machine-card.is-active {
+    border-color: rgba(255, 148, 71, 0.58);
+    background:
+      linear-gradient(180deg, rgba(255, 122, 26, 0.12), rgba(79, 209, 197, 0.05)),
+      rgba(17, 23, 30, 0.88);
+    box-shadow: 0 20px 36px rgba(255, 122, 26, 0.18);
+    transform: translateY(-2px);
+  }
+
+  .machine-card-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .machine-card-name {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .machine-card-score {
+    min-width: 48px;
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .machine-card-subtitle {
+    margin-top: 8px;
+    color: #c4ceda;
+    font-size: 14px;
+    line-height: 1.45;
+    min-height: 42px;
+  }
+
+  .machine-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .machine-card-stat {
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .machine-card-stat-label {
+    display: block;
+    color: var(--mlhub-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .machine-card-stat-value {
+    display: block;
+    margin-top: 5px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .machine-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .mlhub-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #dae2ec;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .mlhub-badge.is-accent {
+    background: rgba(255, 122, 26, 0.12);
+    color: #ffd1b0;
+  }
+
+  .mlhub-badge.is-cyan {
+    background: rgba(79, 209, 197, 0.12);
+    color: #b7fff7;
+  }
+
+  .mlhub-badge.is-muted {
+    color: var(--mlhub-muted);
+  }
+
+  .share-card {
+    padding: 18px 20px;
+    transition: border-color 150ms ease, background 150ms ease;
+  }
+
+  .share-card.is-enabled {
+    border-color: rgba(79, 209, 197, 0.36);
+    background:
+      linear-gradient(180deg, rgba(79, 209, 197, 0.09), rgba(34, 44, 55, 0.96));
+  }
+
+  .share-toggle {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .share-toggle input {
+    margin-top: 4px;
+    accent-color: var(--mlhub-accent);
+    transform: scale(1.15);
+  }
+
+  .share-toggle-title {
+    display: block;
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .share-toggle-copy {
+    display: block;
+    margin-top: 4px;
+    color: var(--mlhub-muted);
+    line-height: 1.45;
+  }
+
+  .selected-machine-title {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+
+  .selected-machine-subtitle {
+    margin-top: 8px;
+    color: #c7d1dd;
+    line-height: 1.55;
+  }
+
+  .selected-machine-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .selected-machine-stat {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .selected-machine-stat-label {
+    display: block;
+    color: var(--mlhub-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .selected-machine-stat-value {
+    display: block;
+    margin-top: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .selected-machine-storage {
+    margin-top: 18px;
+  }
+
+  .storage-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .storage-chip {
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #d7e1eb;
+    font-weight: 600;
+  }
+
+  .health-summary-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 14px;
+    margin-top: 8px;
+  }
+
+  .health-score-panel {
+    padding: 18px;
+    border-radius: 20px;
+    background:
+      radial-gradient(circle at top right, rgba(255, 122, 26, 0.12), transparent 42%),
+      rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .health-score-label {
+    display: block;
+    color: var(--mlhub-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .health-score-value {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .health-score-number {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -0.06em;
+  }
+
+  .health-score-note {
+    color: #c8d1dd;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .health-kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .health-kpi {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .health-kpi-label {
+    display: block;
+    color: var(--mlhub-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .health-kpi-value {
+    display: block;
+    margin-top: 7px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+  }
+
+  .health-hint {
+    margin-top: 14px;
+    color: var(--mlhub-muted);
+    line-height: 1.5;
+  }
+
+  .health-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .health-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: center;
+    padding: 16px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+    transition: transform 130ms ease, border-color 130ms ease, background 130ms ease;
     cursor: help;
   }
 
-  .health-indicator-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 999px;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  .health-row:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 148, 71, 0.32);
+    background: rgba(255, 255, 255, 0.05);
   }
 
-  .health-indicator-label {
-    font-weight: 600;
+  .health-row-main {
+    min-width: 0;
+  }
+
+  .health-row-host {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  .health-row-subtitle {
+    margin-top: 5px;
+    color: var(--mlhub-muted);
+    font-size: 13px;
+  }
+
+  .health-bar {
+    position: relative;
+    height: 10px;
+    margin-top: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .health-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 180ms ease;
+  }
+
+  .health-row-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .health-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .health-status-pill.is-healthy {
+    background: rgba(56, 193, 114, 0.14);
+    color: #aff3c6;
+  }
+
+  .health-status-pill.is-warm {
+    background: rgba(246, 196, 69, 0.14);
+    color: #ffe7a0;
+  }
+
+  .health-status-pill.is-stale {
+    background: rgba(248, 113, 113, 0.12);
+    color: #fecaca;
+  }
+
+  .health-status-pill.is-muted {
+    background: rgba(255, 255, 255, 0.07);
+    color: #cad3df;
+  }
+
+  .health-score-inline {
+    min-width: 54px;
+    text-align: right;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+  }
+
+  .health-empty {
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--mlhub-muted);
+  }
+
+  .mlhub-submit-button {
+    width: 100%;
+    max-width: 1260px;
+    margin: 0 auto 34px;
+    display: block;
+    box-sizing: border-box;
+    padding: 18px 24px;
+    border: 0;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--mlhub-accent), var(--mlhub-accent-strong));
+    color: #fff8f2;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    box-shadow: 0 22px 40px rgba(255, 122, 26, 0.28);
+    transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  }
+
+  .mlhub-submit-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 28px 50px rgba(255, 122, 26, 0.3);
+    filter: saturate(1.04);
+  }
+
+  @media (max-width: 980px) {
+    .mlhub-shell {
+      margin-top: 18px;
+    }
+
+    .mlhub-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .health-summary-grid,
+    .mlhub-mini-board {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .mlhub-shell {
+      width: 100%;
+    }
+
+    .mlhub-hero,
+    .mlhub-card {
+      padding: 20px;
+      border-radius: 20px;
+    }
+
+    .selected-machine-stats,
+    .health-kpis,
+    .machine-card-stats {
+      grid-template-columns: 1fr;
+    }
+
+    .health-row {
+      grid-template-columns: 1fr;
+    }
+
+    .health-row-meta {
+      justify-content: space-between;
+    }
   }
 </style>
 
-<div class="container">
-  <br>
-  <h1><center>Production version</center></h1>
-  <p>
-    This is the production variant of the project. Expect bugs, inconsistencies and random reboots. <br>
-    Pull requests are welcome <a href="https://github.com/KiralyCraft/MLHubSpawner">here</a>.
-    For feedback and suggestions, get in touch <a href="mailto:alexandru.kiraly@ubbcluj.ro"> here</a>.<br>
-  </p>
-  <br>
-  <p>
-    <b> Support has now moved to Teams. Click <a href="https://teams.microsoft.com/l/team/19%3AM2spXKLZbWZKrwFGiVyZI8GQT7sJvRLLnSDf2DlTuh81%40thread.tacv2/conversations?groupId=0676c47a-e60e-48c3-bbfa-83cf418b69b4&tenantId=5a4863ed-40c8-4fd5-8298-fbfdb7f13095">here</a> to join </b>
-  </p>
-  <br>
-
-
-  <!-- Machine Selection Form -->
-  <div class="form-group mb-3">
-    <label for="machineSelect">Select your machine type</label>
-    <select class="form-control" name="machineSelect" id="machineSelect" onchange="updateMachineDetails();">
-      <!-- Options will be populated by JavaScript -->
-    </select>
-  </div>
-  
-  <!-- SharedAccess Access Checkbox -->
-  <div class="form-group mb-3">
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" id="sharedAccess" name="sharedAccess">
-      <label class="form-check-label" for="sharedAccess">I agree to share access to this machine</label>
+<div class="mlhub-shell">
+  <section class="mlhub-hero">
+    <div class="mlhub-hero-top">
+      <div>
+        <span class="mlhub-eyebrow">Production Cluster</span>
+        <h2>Choose the machine profile that fits the session you want to run.</h2>
+        <p class="mlhub-hero-copy">
+          Live node health is already folded into this page. Pick a profile, inspect the fleet, and hover any node row for VRAM, RAM, GPU, and CPU details before you start.
+        </p>
+        <div class="mlhub-link-strip">
+          <a class="mlhub-link-pill" href="https://github.com/KiralyCraft/MLHubSpawner">View project</a>
+          <a class="mlhub-link-pill" href="mailto:alexandru.kiraly@ubbcluj.ro">Contact maintainer</a>
+          <a class="mlhub-link-pill" href="https://teams.microsoft.com/l/team/19%3AM2spXKLZbWZKrwFGiVyZI8GQT7sJvRLLnSDf2DlTuh81%40thread.tacv2/conversations?groupId=0676c47a-e60e-48c3-bbfa-83cf418b69b4&tenantId=5a4863ed-40c8-4fd5-8298-fbfdb7f13095">Join support channel</a>
+        </div>
+      </div>
+      <div class="mlhub-mini-board">
+        <div class="mlhub-mini-stat">
+          <span class="mlhub-mini-stat-label">Mode</span>
+          <span class="mlhub-mini-stat-value">Prod</span>
+          <span class="mlhub-mini-stat-note">Stable environment</span>
+        </div>
+        <div class="mlhub-mini-stat">
+          <span class="mlhub-mini-stat-label">Telemetry</span>
+          <span class="mlhub-mini-stat-value">Live</span>
+          <span class="mlhub-mini-stat-note">Health cache attached</span>
+        </div>
+        <div class="mlhub-mini-stat">
+          <span class="mlhub-mini-stat-label">Workflow</span>
+          <span class="mlhub-mini-stat-value">Fast</span>
+          <span class="mlhub-mini-stat-note">Card-based selection</span>
+        </div>
+      </div>
     </div>
+  </section>
+
+  <div class="mlhub-layout">
+    <section class="mlhub-column">
+      <div class="mlhub-card">
+        <div class="mlhub-card-header">
+          <div>
+            <h3 class="mlhub-card-title">Machine Profiles</h3>
+            <p class="mlhub-card-copy">Click a card to preview the profile, node pool, and current cluster signal.</p>
+          </div>
+          <span class="mlhub-card-tag">Interactive</span>
+        </div>
+
+        <label for="machineSelect" class="sr-only">Select your machine type</label>
+        <select class="machine-select-native" name="machineSelect" id="machineSelect" onchange="updateMachineDetails();"></select>
+
+        <div id="machineCardGrid" class="machine-card-grid"></div>
+      </div>
+
+      <div id="sharingCard" class="mlhub-card share-card">
+        <label class="share-toggle" for="sharedAccess">
+          <input class="form-check-input" type="checkbox" id="sharedAccess" name="sharedAccess">
+          <span>
+            <span class="share-toggle-title">Shared Access</span>
+            <span class="share-toggle-copy">Turn this on if you are fine sharing a machine with other sessions. Shared-capable profiles will pack users more efficiently.</span>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <section class="mlhub-column">
+      <div id="machineDetails" class="mlhub-card"></div>
+      <div id="machineHealthSummary" class="mlhub-card"></div>
+    </section>
   </div>
 
-  <!-- Machine Details Display -->
-  <div id="machineDetails" class="well details-list mb-3">
-    <!-- Details will be populated by JavaScript -->
-  </div>
-
-  <div class="well mb-3">
-    <h3>Machine Health</h3>
-    <div id="machineHealthTable">
-      <!-- Health table will be populated by JavaScript -->
+  <div class="mlhub-card" style="margin-top: 22px;">
+    <div class="mlhub-card-header">
+      <div>
+        <h3 class="mlhub-card-title">Node Health</h3>
+        <p class="mlhub-card-copy">Hover any row for per-node telemetry. Health scores closer to 100 mean more headroom.</p>
+      </div>
+      <span class="mlhub-card-tag">Hover for details</span>
     </div>
+    <div id="machineHealthTable"></div>
   </div>
 </div>
 
@@ -93,7 +816,17 @@
   var formPayload = {formPayload};
   var machines = formPayload.machines || [];
   var nodeHealth = formPayload.nodeHealth || {};
-  var filteredMachinesList = machines; // No filtering needed.
+  var filteredMachinesList = machines;
+  var selectedMachineIndex = 0;
+
+  function escapeHtml(value) {
+    return String(value === null || value === undefined ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
 
   function displayHostname(machineInstance) {
     if (!machineInstance) {
@@ -116,13 +849,79 @@
     return Number(value).toFixed(1) + '%';
   }
 
-  function getHealthColor(snapshot) {
-    if (!snapshot || snapshot.fitness_score === null || snapshot.fitness_score === undefined || !snapshot.healthy || snapshot.stale) {
-      return '#9ca3af';
+  function getHealthColorFromScore(score) {
+    if (score === null || score === undefined || isNaN(Number(score))) {
+      return '#8d97a6';
     }
 
-    var hue = Math.max(0, Math.min(120, (Number(snapshot.fitness_score) / 100) * 120));
-    return 'hsl(' + hue + ', 75%, 42%)';
+    var hue = Math.max(0, Math.min(120, (Number(score) / 100) * 120));
+    return 'hsl(' + hue + ', 75%, 45%)';
+  }
+
+  function getHealthColor(snapshot) {
+    if (!snapshot || snapshot.fitness_score === null || snapshot.fitness_score === undefined || !snapshot.healthy || snapshot.stale) {
+      return '#8d97a6';
+    }
+    return getHealthColorFromScore(snapshot.fitness_score);
+  }
+
+  function getStatusMeta(snapshot) {
+    if (!snapshot) {
+      return { label: 'No data', className: 'is-muted' };
+    }
+    if (snapshot.stale) {
+      return { label: 'Stale', className: 'is-stale' };
+    }
+    if (!snapshot.healthy) {
+      return { label: 'Issue', className: 'is-stale' };
+    }
+    if (snapshot.fitness_score === null || snapshot.fitness_score === undefined) {
+      return { label: 'Warmup', className: 'is-warm' };
+    }
+    return { label: 'Healthy', className: 'is-healthy' };
+  }
+
+  function getMachineInstances(machine) {
+    return Array.isArray(machine && machine.instances) ? machine.instances : [];
+  }
+
+  function getMachineHealthStats(machine) {
+    var stats = {
+      total: getMachineInstances(machine).length,
+      healthy: 0,
+      stale: 0,
+      issues: 0,
+      noData: 0,
+      averageScore: null
+    };
+    var scoredNodes = [];
+
+    getMachineInstances(machine).forEach(function(machineInstance) {
+      var snapshot = nodeHealth[machineInstance.instance_id];
+      if (!snapshot) {
+        stats.noData += 1;
+        return;
+      }
+      if (snapshot.stale) {
+        stats.stale += 1;
+      } else if (!snapshot.healthy) {
+        stats.issues += 1;
+      } else {
+        stats.healthy += 1;
+      }
+      if (snapshot.fitness_score !== null && snapshot.fitness_score !== undefined) {
+        scoredNodes.push(Number(snapshot.fitness_score));
+      }
+    });
+
+    if (scoredNodes.length > 0) {
+      var totalScore = scoredNodes.reduce(function(sum, score) {
+        return sum + score;
+      }, 0);
+      stats.averageScore = Math.round((totalScore / scoredNodes.length) * 10) / 10;
+    }
+
+    return stats;
   }
 
   function buildHealthTooltip(machineInstance, snapshot) {
@@ -170,107 +969,238 @@
     return lines.join('\n');
   }
 
+  function renderMachineCards() {
+    var machineCardGrid = document.getElementById('machineCardGrid');
+
+    if (filteredMachinesList.length === 0) {
+      machineCardGrid.innerHTML = '<div class="health-empty">No machine profiles are available for your account.</div>';
+      return;
+    }
+
+    machineCardGrid.innerHTML = filteredMachinesList.map(function(machine, index) {
+      var stats = getMachineHealthStats(machine);
+      var scoreLabel = stats.averageScore !== null ? Math.round(stats.averageScore) : 'n/a';
+      var scoreColor = getHealthColorFromScore(stats.averageScore);
+      var gpuSummary = Array.isArray(machine.gpu) && machine.gpu.length > 0 ? machine.gpu.join(', ') : 'GPU info unavailable';
+      var badges = [
+        '<span class="mlhub-badge ' + (machine.shared_access_enabled ? 'is-cyan' : 'is-muted') + '">' + (machine.shared_access_enabled ? 'Shared-capable' : 'Exclusive only') + '</span>',
+        '<span class="mlhub-badge ' + (machine.privileged_access_required ? 'is-accent' : 'is-muted') + '">' + (machine.privileged_access_required ? 'Privileged' : 'Standard access') + '</span>'
+      ].join('');
+
+      return '' +
+        '<button type="button" class="machine-card ' + (index === selectedMachineIndex ? 'is-active' : '') + '" data-machine-index="' + index + '">' +
+          '<div class="machine-card-top">' +
+            '<div>' +
+              '<h4 class="machine-card-name">' + escapeHtml(machine.codename || 'Unnamed') + '</h4>' +
+            '</div>' +
+            '<span class="machine-card-score" style="color:' + escapeHtml(scoreColor) + ';">' + escapeHtml(scoreLabel) + '</span>' +
+          '</div>' +
+          '<p class="machine-card-subtitle">' + escapeHtml(gpuSummary) + '</p>' +
+          '<div class="machine-card-stats">' +
+            '<div class="machine-card-stat"><span class="machine-card-stat-label">Nodes</span><span class="machine-card-stat-value">' + escapeHtml(machine.total_instances || getMachineInstances(machine).length || 0) + '</span></div>' +
+            '<div class="machine-card-stat"><span class="machine-card-stat-label">RAM</span><span class="machine-card-stat-value">' + escapeHtml(machine.ram || 'n/a') + ' GB</span></div>' +
+            '<div class="machine-card-stat"><span class="machine-card-stat-label">CPU</span><span class="machine-card-stat-value">' + escapeHtml(machine.cpu_cores || 'n/a') + ' cores</span></div>' +
+          '</div>' +
+          '<div class="machine-card-badges">' + badges + '</div>' +
+        '</button>';
+    }).join('');
+
+    Array.prototype.forEach.call(machineCardGrid.querySelectorAll('[data-machine-index]'), function(button) {
+      button.addEventListener('click', function() {
+        setSelectedMachine(Number(button.getAttribute('data-machine-index')));
+      });
+    });
+  }
+
+  function renderMachineDetails(machine) {
+    var detailsDiv = document.getElementById('machineDetails');
+    if (!machine) {
+      detailsDiv.innerHTML = '<div class="health-empty">No machine selected.</div>';
+      return;
+    }
+
+    var storageMarkup = Array.isArray(machine.storage) && machine.storage.length > 0
+      ? machine.storage.map(function(storageItem) {
+          return '<span class="storage-chip">' + escapeHtml(storageItem[0]) + ': ' + escapeHtml(storageItem[1]) + ' GB</span>';
+        }).join('')
+      : '<span class="storage-chip">Storage info unavailable</span>';
+
+    var badges = [
+      '<span class="mlhub-badge ' + (machine.shared_access_enabled ? 'is-cyan' : 'is-muted') + '">' + (machine.shared_access_enabled ? 'Shared scheduling supported' : 'Exclusive scheduling only') + '</span>',
+      '<span class="mlhub-badge ' + (machine.privileged_access_required ? 'is-accent' : 'is-muted') + '">' + (machine.privileged_access_required ? 'Requires elevated access' : 'Available to standard users') + '</span>'
+    ].join('');
+
+    detailsDiv.innerHTML =
+      '<div class="mlhub-card-header">' +
+        '<div>' +
+          '<h3 class="mlhub-card-title">Selected Profile</h3>' +
+          '<p class="mlhub-card-copy">Current selection synced to the spawn form.</p>' +
+        '</div>' +
+        '<span class="mlhub-card-tag">Ready</span>' +
+      '</div>' +
+      '<h4 class="selected-machine-title">' + escapeHtml(machine.codename || 'Unnamed') + '</h4>' +
+      '<p class="selected-machine-subtitle">' + escapeHtml(machine.cpu_model || 'CPU model unavailable') + '</p>' +
+      '<div class="machine-card-badges" style="margin-top: 14px;">' + badges + '</div>' +
+      '<div class="selected-machine-stats">' +
+        '<div class="selected-machine-stat"><span class="selected-machine-stat-label">Instances</span><span class="selected-machine-stat-value">' + escapeHtml(machine.total_instances || getMachineInstances(machine).length || 0) + '</span></div>' +
+        '<div class="selected-machine-stat"><span class="selected-machine-stat-label">CPU Cores</span><span class="selected-machine-stat-value">' + escapeHtml(machine.cpu_cores || 'n/a') + '</span></div>' +
+        '<div class="selected-machine-stat"><span class="selected-machine-stat-label">RAM</span><span class="selected-machine-stat-value">' + escapeHtml(machine.ram || 'n/a') + ' GB</span></div>' +
+        '<div class="selected-machine-stat"><span class="selected-machine-stat-label">GPUs</span><span class="selected-machine-stat-value">' + escapeHtml(Array.isArray(machine.gpu) && machine.gpu.length > 0 ? machine.gpu.join(', ') : 'Unavailable') + '</span></div>' +
+      '</div>' +
+      '<div class="selected-machine-storage">' +
+        '<span class="selected-machine-stat-label">Storage</span>' +
+        '<div class="storage-list">' + storageMarkup + '</div>' +
+      '</div>';
+  }
+
+  function renderHealthSummary(machine) {
+    var summaryDiv = document.getElementById('machineHealthSummary');
+    if (!machine) {
+      summaryDiv.innerHTML = '<div class="health-empty">No health summary available.</div>';
+      return;
+    }
+
+    var stats = getMachineHealthStats(machine);
+    var scoreLabel = stats.averageScore !== null ? Math.round(stats.averageScore) : 'n/a';
+    var scoreColor = getHealthColorFromScore(stats.averageScore);
+
+    summaryDiv.innerHTML =
+      '<div class="mlhub-card-header">' +
+        '<div>' +
+          '<h3 class="mlhub-card-title">Cluster Signal</h3>' +
+          '<p class="mlhub-card-copy">Snapshot for the currently selected profile.</p>' +
+        '</div>' +
+        '<span class="mlhub-card-tag">Live cache</span>' +
+      '</div>' +
+      '<div class="health-summary-grid">' +
+        '<div class="health-score-panel">' +
+          '<span class="health-score-label">Average fitness</span>' +
+          '<div class="health-score-value">' +
+            '<span class="health-score-number" style="color:' + escapeHtml(scoreColor) + ';">' + escapeHtml(scoreLabel) + '</span>' +
+            '<span class="health-score-note">Across nodes with live scores for this profile.</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="health-kpis">' +
+          '<div class="health-kpi"><span class="health-kpi-label">Healthy</span><span class="health-kpi-value">' + escapeHtml(stats.healthy) + '</span></div>' +
+          '<div class="health-kpi"><span class="health-kpi-label">Stale</span><span class="health-kpi-value">' + escapeHtml(stats.stale) + '</span></div>' +
+          '<div class="health-kpi"><span class="health-kpi-label">Issues</span><span class="health-kpi-value">' + escapeHtml(stats.issues) + '</span></div>' +
+          '<div class="health-kpi"><span class="health-kpi-label">No data</span><span class="health-kpi-value">' + escapeHtml(stats.noData) + '</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<p class="health-hint">Rows below are interactive. Hover a node to inspect VRAM use, RAM use, GPU utilization, CPU load, and any cached error.</p>';
+  }
+
   function renderMachineHealthTable(machine) {
     var tableContainer = document.getElementById('machineHealthTable');
     if (!machine || !machine.instances || machine.instances.length === 0) {
-      tableContainer.innerHTML = '<p>No machine instances available.</p>';
+      tableContainer.innerHTML = '<div class="health-empty">No machine instances available for this profile.</div>';
       return;
     }
 
     var rowsHtml = machine.instances.map(function(machineInstance) {
       var snapshot = nodeHealth[machineInstance.instance_id];
       var indicatorColor = getHealthColor(snapshot);
-      var indicatorLabel = (snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined)
+      var indicatorLabel = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined
         ? Number(snapshot.fitness_score).toFixed(0)
         : 'n/a';
-      var tooltipText = buildHealthTooltip(machineInstance, snapshot)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+      var tooltipText = escapeHtml(buildHealthTooltip(machineInstance, snapshot));
+      var barWidth = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined
+        ? Math.max(8, Math.min(100, Number(snapshot.fitness_score)))
+        : 8;
+      var statusMeta = getStatusMeta(snapshot);
+      var subtitle = snapshot && snapshot.last_success_at
+        ? 'Telemetry cached'
+        : 'Waiting for telemetry';
 
       return '' +
-        '<tr>' +
-          '<td>' + displayHostname(machineInstance) + '</td>' +
-          '<td>' +
-            '<span class="health-indicator" title="' + tooltipText + '">' +
-              '<span class="health-indicator-dot" style="background-color: ' + indicatorColor + ';"></span>' +
-              '<span class="health-indicator-label">' + indicatorLabel + '</span>' +
-            '</span>' +
-          '</td>' +
-        '</tr>';
+        '<div class="health-row" title="' + tooltipText + '">' +
+          '<div class="health-row-main">' +
+            '<div class="health-row-host">' + escapeHtml(displayHostname(machineInstance)) + '</div>' +
+            '<div class="health-row-subtitle">' + escapeHtml(subtitle) + '</div>' +
+            '<div class="health-bar"><div class="health-bar-fill" style="width:' + escapeHtml(barWidth) + '%; background:' + escapeHtml(indicatorColor) + ';"></div></div>' +
+          '</div>' +
+          '<div class="health-row-meta">' +
+            '<span class="health-status-pill ' + escapeHtml(statusMeta.className) + '">' + escapeHtml(statusMeta.label) + '</span>' +
+            '<span class="health-score-inline" style="color:' + escapeHtml(indicatorColor) + ';">' + escapeHtml(indicatorLabel) + '</span>' +
+          '</div>' +
+        '</div>';
     }).join('');
 
-    tableContainer.innerHTML =
-      '<table class="machine-health-table">' +
-        '<thead>' +
-          '<tr><th>Hostname</th><th>Health</th></tr>' +
-        '</thead>' +
-        '<tbody>' + rowsHtml + '</tbody>' +
-      '</table>';
+    tableContainer.innerHTML = '<div class="health-list">' + rowsHtml + '</div>';
   }
 
-  function displayMachineDetailsFromFiltered(index) {
-    var detailsDiv = document.getElementById('machineDetails');
-    if (!filteredMachinesList[index]) {
-      detailsDiv.innerHTML = "<p>No machines available</p>";
-      document.getElementById('machineHealthTable').innerHTML = "<p>No machines available</p>";
+  function renderSharingCard() {
+    var sharedAccess = document.getElementById('sharedAccess');
+    var sharingCard = document.getElementById('sharingCard');
+    if (!sharedAccess || !sharingCard) {
       return;
     }
-    var machine = filteredMachinesList[index];
-    var detailsHtml = '<h3>Machine Details</h3>';
-    detailsHtml += '<p><strong>Total Instances:</strong> ' + (machine.total_instances || 1) + '</p>';
-    detailsHtml += '<p><strong>CPU Model:</strong> ' + machine.cpu_model + '</p>';
-    detailsHtml += '<p><strong>CPU Cores:</strong> ' + machine.cpu_cores + '</p>';
-    detailsHtml += '<p><strong>RAM:</strong> ' + machine.ram + ' GB</p>';
-    detailsHtml += '<p><strong>GPUs:</strong> ' + machine.gpu.join(', ') + '</p>';
 
-    // Display storage details as a bullet list.
-    detailsHtml += '<p><strong>Storage:</strong></p>';
-    detailsHtml += '<ul>';
-    machine.storage.forEach(function(storageItem) {
-      detailsHtml += '<li>' + storageItem[0] + ': ' + storageItem[1] + ' GB</li>';
-    });
-    detailsHtml += '</ul>';
+    sharingCard.classList.toggle('is-enabled', sharedAccess.checked);
+  }
 
-    detailsDiv.innerHTML = detailsHtml;
+  function renderSelectedMachine() {
+    var machine = filteredMachinesList[selectedMachineIndex];
+    if (!machine) {
+      document.getElementById('machineDetails').innerHTML = '<div class="health-empty">No machines available.</div>';
+      document.getElementById('machineHealthSummary').innerHTML = '<div class="health-empty">No health summary available.</div>';
+      document.getElementById('machineHealthTable').innerHTML = '<div class="health-empty">No health data available.</div>';
+      return;
+    }
+
+    renderMachineCards();
+    renderMachineDetails(machine);
+    renderHealthSummary(machine);
     renderMachineHealthTable(machine);
+  }
+
+  function setSelectedMachine(index) {
+    selectedMachineIndex = Math.max(0, Math.min(filteredMachinesList.length - 1, Number(index) || 0));
+    document.getElementById('machineSelect').value = String(selectedMachineIndex);
+    renderSelectedMachine();
   }
 
   function populateMachineOptions() {
     var machineSelect = document.getElementById('machineSelect');
-    machineSelect.innerHTML = "";
+    machineSelect.innerHTML = '';
     filteredMachinesList = machines;
 
     if (filteredMachinesList.length === 0) {
       var opt = document.createElement('option');
-      opt.textContent = "No machines available";
-      opt.value = "";
+      opt.textContent = 'No machines available';
+      opt.value = '';
       opt.disabled = true;
       machineSelect.appendChild(opt);
-      document.getElementById('machineDetails').innerHTML = "<p>No machines available</p>";
-      document.getElementById('machineHealthTable').innerHTML = "<p>No machines available</p>";
+      renderSelectedMachine();
       return;
     }
 
     filteredMachinesList.forEach(function(machine, index) {
       var option = document.createElement('option');
       option.value = index;
-      // Use the codename for the dropdown label.
-      option.textContent = machine.codename;
+      option.textContent = machine.codename || ('Machine ' + (index + 1));
       machineSelect.appendChild(option);
     });
 
-    // Display details for the first machine by default.
-    displayMachineDetailsFromFiltered(0);
+    machineSelect.value = '0';
+    selectedMachineIndex = 0;
+    renderSelectedMachine();
   }
 
   function updateMachineDetails() {
     var machineSelect = document.getElementById('machineSelect');
-    var index = machineSelect.value;
-    displayMachineDetailsFromFiltered(index);
+    setSelectedMachine(machineSelect.value);
   }
 
-  // Populate the dropdown on page load.
+  document.getElementById('sharedAccess').addEventListener('change', renderSharingCard);
+
   populateMachineOptions();
+  renderSharingCard();
+
+  var hostForm = document.getElementById('machineSelect').form;
+  if (hostForm) {
+    Array.prototype.forEach.call(hostForm.querySelectorAll('button[type="submit"], input[type="submit"]'), function(button) {
+      button.classList.add('mlhub-submit-button');
+    });
+  }
 </script>

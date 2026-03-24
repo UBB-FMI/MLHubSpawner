@@ -177,7 +177,7 @@ class MachineManager:
     def restore_allocation(self, machine_instance: MachineInstance, unique_identifier: str, shared_access_enabled: bool) -> bool:
         existing_allocation = self.allocations.get(unique_identifier)
         if existing_allocation is not None:
-            return existing_allocation.machine_instance == machine_instance
+            return existing_allocation.machine_instance is machine_instance
 
         machine_instance.assign_user(unique_identifier, shared_access_enabled)
         self.allocations[unique_identifier] = MachineAllocation(

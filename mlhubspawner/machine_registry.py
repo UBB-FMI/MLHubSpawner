@@ -44,17 +44,13 @@ class MachineType:
 
 @dataclass(eq=False)
 class MachineInstance:
+    # Runtime code passes these shared objects around directly, so identity-based
+    # equality is intentional here.
     instance_id: str
     machine_type: MachineType
     hostname: str
     ssh_port: int
     assigned_users: Dict[str, bool] = field(default_factory=dict)
-
-    def __hash__(self) -> int:
-        return hash(self.instance_id)
-
-    def __eq__(self, other) -> bool:
-        return isinstance(other, MachineInstance) and self.instance_id == other.instance_id
 
     @property
     def endpoint(self) -> str:

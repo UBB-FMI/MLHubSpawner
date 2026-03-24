@@ -11,7 +11,7 @@ from .exceptions.jupyter_html_exception import JupyterHubHTMLException
 from .state_manager import spawner_load_state, spawner_get_state, spawner_clear_state
 from .account_manager import get_privilege, get_safe_username
 from .machine_manager import MachineManager
-from .machine_registry import MachineRegistry
+from .machine_registry import MachineInstance, MachineRegistry
 from .node_health_monitor import NodeHealthMonitor
 from .notebook_manager import NotebookManager
 from .minio_manager import MinIOManager
@@ -106,11 +106,23 @@ class MLHubSpawner(Spawner):
             return {}
         return cls._node_health_monitor.get_all_snapshots()
 
-    def get_node_health_snapshot(self, machine_instance_identifier_or_endpoint: str):
+    def get_node_health_snapshot(self, machine_instance: MachineInstance):
         cls = type(self)
         if cls._node_health_monitor is None:
             return None
-        return cls._node_health_monitor.get_snapshot(machine_instance_identifier_or_endpoint)
+        return cls._node_health_monitor.get_snapshot(machine_instance)
+
+    def get_node_health_snapshot_payloads(self):
+        cls = type(self)
+        if cls._node_health_monitor is None:
+            return {}
+        return cls._node_health_monitor.get_all_snapshot_payloads()
+
+    def get_node_health_snapshot_payload(self, machine_instance: MachineInstance):
+        cls = type(self)
+        if cls._node_health_monitor is None:
+            return None
+        return cls._node_health_monitor.get_snapshot_payload(machine_instance)
 
     #==== STARTING, STOPPPING, POLLING ====
     def __slowError(self, errorMessage : str):
@@ -118,7 +130,6 @@ class MLHubSpawner(Spawner):
         raise JupyterHubHTMLException(errorMessage) 
 
     async def start(self):
-        self._ensure_node_health_monitor_started()
         selected_machine_index = self.user_options['machineSelect']
         shared_access_enabled = self.user_options['sharedAccess']
 
@@ -208,7 +219,6 @@ class MLHubSpawner(Spawner):
 
 
     async def poll(self):
-        self._ensure_node_health_monitor_started()
         #=== NOT CONFIGURED ===
         if not self.state_pid or self.state_pid == 0:
             self.clear_state()
@@ -223,7 +233,6 @@ class MLHubSpawner(Spawner):
         return None
 
     async def stop(self, now = False):
-        self._ensure_node_health_monitor_started()
         #=== KILL THE NOTEBOOK ===
         await self.notebook_manager.kill_notebook()
 
@@ -260,7 +269,6 @@ class MLHubSpawner(Spawner):
 
     # Return the actual HTML page for the form. Only show users things they have access to.
     def _options_form_default(self):
-        self._ensure_node_health_monitor_started()
         available_remote_hosts = self.__class__._machine_manager.get_available_types(self.user_privilege_level)
 
         self.machine_offers[self.user_unique_identifier] = available_remote_hosts
@@ -272,7 +280,7 @@ class MLHubSpawner(Spawner):
 
         return self.form_builder.get_html_page(
             available_remote_hosts_dictionary,
-            self.get_node_health_snapshots(),
+            self.get_node_health_snapshot_payloads(),
         )
 
     # Parse the form data into the correct types. The values here are available in the "start" method as "self.user_options"
