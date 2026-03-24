@@ -651,6 +651,12 @@
     letter-spacing: -0.05em;
   }
 
+  .health-score-inline.is-text {
+    min-width: 84px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+  }
+
   .health-chevron {
     color: var(--mlhub-muted);
     font-size: 18px;
@@ -910,18 +916,13 @@
     return getHealthColorFromScore(snapshot.fitness_score);
   }
 
+  function isOfflineSnapshot(snapshot) {
+    return !snapshot || snapshot.stale || !snapshot.healthy || snapshot.fitness_score === null || snapshot.fitness_score === undefined;
+  }
+
   function getStatusMeta(snapshot) {
-    if (!snapshot) {
-      return { label: 'No data', className: 'is-muted' };
-    }
-    if (snapshot.stale) {
-      return { label: 'Stale', className: 'is-stale' };
-    }
-    if (!snapshot.healthy) {
-      return { label: 'Issue', className: 'is-stale' };
-    }
-    if (snapshot.fitness_score === null || snapshot.fitness_score === undefined) {
-      return { label: 'Warmup', className: 'is-warm' };
+    if (isOfflineSnapshot(snapshot)) {
+      return { label: 'OFFLINE', className: 'is-stale' };
     }
     return { label: 'Healthy', className: 'is-healthy' };
   }
@@ -1094,12 +1095,12 @@
 
   function buildNodeDetails(snapshot) {
     if (!snapshot) {
-      return '<div class="health-empty">No cached data yet for this node.</div>';
+      return '<div class="health-empty">This node is offline or has not reported telemetry yet.</div>';
     }
 
     var cpuText = snapshot.cpu_usage_pct !== null && snapshot.cpu_usage_pct !== undefined
       ? formatPercent(snapshot.cpu_usage_pct)
-      : 'warming up';
+      : 'n/a';
     var ramText = snapshot.ram_used_bytes !== null && snapshot.ram_total_bytes !== null
       ? bytesToGiB(snapshot.ram_used_bytes) + ' / ' + bytesToGiB(snapshot.ram_total_bytes)
       : 'n/a';
@@ -1148,15 +1149,14 @@
       '<div class="health-list">' +
       getMachineInstances(machine).map(function(machineInstance) {
         var snapshot = nodeHealth[machineInstance.instance_id];
-        var score = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined ? Number(snapshot.fitness_score) : null;
-        var scoreText = score !== null ? Math.round(score) : 'n/a';
+        var offline = isOfflineSnapshot(snapshot);
+        var score = !offline ? Number(snapshot.fitness_score) : null;
+        var scoreText = score !== null ? Math.round(score) : 'OFFLINE';
         var barWidth = score !== null ? Math.max(8, Math.min(100, score)) : 8;
         var color = getHealthColor(snapshot);
         var statusMeta = getStatusMeta(snapshot);
         var isOpen = expandedHealthInstanceId === machineInstance.instance_id;
-        var subtitle = snapshot
-          ? (snapshot.healthy && !snapshot.stale ? 'Click to inspect current load' : 'Click for details')
-          : 'Click to inspect node details';
+        var subtitle = offline ? 'Node is currently unavailable' : 'Click to inspect current load';
 
         return '' +
           '<div class="health-item ' + (isOpen ? 'is-open' : '') + '">' +
@@ -1168,7 +1168,7 @@
               '</div>' +
               '<div class="health-meta">' +
                 '<span class="health-status-pill ' + escapeHtml(statusMeta.className) + '">' + escapeHtml(statusMeta.label) + '</span>' +
-                '<span class="health-score-inline" style="color:' + escapeHtml(color) + ';">' + escapeHtml(scoreText) + '</span>' +
+                '<span class="health-score-inline' + (offline ? ' is-text' : '') + '" style="color:' + escapeHtml(color) + ';">' + escapeHtml(scoreText) + '</span>' +
                 '<span class="health-chevron">&#8250;</span>' +
               '</div>' +
             '</button>' +
