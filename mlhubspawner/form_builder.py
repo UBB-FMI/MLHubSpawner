@@ -28,10 +28,14 @@ class JupyterFormBuilder():
 
     def _safe_fetch(self, formdata, key, default):
         return formdata[key][0] if key in formdata else default
-
-    def get_html_page(self, dicitonaryList):
-        jsonDictionary = json.dumps(dicitonaryList)
-        return self.form_html_content.replace("{machineData}",jsonDictionary)
+    
+    def get_html_page(self, dicitonaryList, nodeHealthSnapshots=None):
+        payload = {
+            "machines": dicitonaryList,
+            "nodeHealth": nodeHealthSnapshots or {},
+        }
+        jsonPayload = json.dumps(payload).replace("</", "<\\/")
+        return self.form_html_content.replace("{formPayload}", jsonPayload)
 
     def get_form_options(self, formdata):
         options = {}

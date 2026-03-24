@@ -4,18 +4,61 @@
     margin: 0;
     margin-bottom: 5px;
   }
+
+  .machine-health-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+
+  .machine-health-table th,
+  .machine-health-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .machine-health-table th {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+
+  .health-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: help;
+  }
+
+  .health-indicator-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  }
+
+  .health-indicator-label {
+    font-weight: 600;
+  }
 </style>
 
 <div class="container">
   <br>
-  <h1><center>Development version</center></h1>
+  <h1><center>Production version</center></h1>
   <p>
-    This is the development variant of the project. Expect bugs, inconsistencies and random reboots. <br>
+    This is the production variant of the project. Expect bugs, inconsistencies and random reboots. <br>
     Pull requests are welcome <a href="https://github.com/KiralyCraft/MLHubSpawner">here</a>.
     For feedback and suggestions, get in touch <a href="mailto:alexandru.kiraly@ubbcluj.ro"> here</a>.<br>
-    The production variant is available <a href="https://www.cs.ubbcluj.ro/apps/mlhub"> here </a>
   </p>
   <br>
+  <p>
+    <b> Support has now moved to Teams. Click <a href="https://teams.microsoft.com/l/team/19%3AM2spXKLZbWZKrwFGiVyZI8GQT7sJvRLLnSDf2DlTuh81%40thread.tacv2/conversations?groupId=0676c47a-e60e-48c3-bbfa-83cf418b69b4&tenantId=5a4863ed-40c8-4fd5-8298-fbfdb7f13095">here</a> to join </b>
+  </p>
+  <br>
+
 
   <!-- Machine Selection Form -->
   <div class="form-group mb-3">
@@ -37,18 +80,141 @@
   <div id="machineDetails" class="well details-list mb-3">
     <!-- Details will be populated by JavaScript -->
   </div>
+
+  <div class="well mb-3">
+    <h3>Machine Health</h3>
+    <div id="machineHealthTable">
+      <!-- Health table will be populated by JavaScript -->
+    </div>
+  </div>
 </div>
 
 <script>
-  // 'machines' should be passed from your server using Jinja2's tojson filter.
-  var machinesString = '{machineData}';
-  var machines = JSON.parse(machinesString);
+  var formPayload = {formPayload};
+  var machines = formPayload.machines || [];
+  var nodeHealth = formPayload.nodeHealth || {};
   var filteredMachinesList = machines; // No filtering needed.
+
+  function displayHostname(machineInstance) {
+    if (!machineInstance) {
+      return 'unknown';
+    }
+    return machineInstance.hostname || machineInstance.endpoint || machineInstance.instance_id;
+  }
+
+  function bytesToGiB(bytesValue) {
+    if (bytesValue === null || bytesValue === undefined) {
+      return 'n/a';
+    }
+    return (bytesValue / Math.pow(1024, 3)).toFixed(2) + ' GiB';
+  }
+
+  function formatPercent(value) {
+    if (value === null || value === undefined) {
+      return 'n/a';
+    }
+    return Number(value).toFixed(1) + '%';
+  }
+
+  function getHealthColor(snapshot) {
+    if (!snapshot || snapshot.fitness_score === null || snapshot.fitness_score === undefined || !snapshot.healthy || snapshot.stale) {
+      return '#9ca3af';
+    }
+
+    var hue = Math.max(0, Math.min(120, (Number(snapshot.fitness_score) / 100) * 120));
+    return 'hsl(' + hue + ', 75%, 42%)';
+  }
+
+  function buildHealthTooltip(machineInstance, snapshot) {
+    if (!snapshot) {
+      return displayHostname(machineInstance) + '\nNo cached health data yet.';
+    }
+
+    var lines = [];
+    lines.push('Host: ' + displayHostname(machineInstance));
+
+    if (snapshot.fitness_score !== null && snapshot.fitness_score !== undefined) {
+      lines.push('Fitness score: ' + Number(snapshot.fitness_score).toFixed(2));
+    } else {
+      lines.push('Fitness score: n/a');
+    }
+
+    lines.push('Status: ' + (snapshot.healthy ? 'healthy' : 'unhealthy') + (snapshot.stale ? ' (stale)' : ''));
+
+    if (snapshot.ram_used_bytes !== null && snapshot.ram_total_bytes !== null) {
+      lines.push('RAM used: ' + bytesToGiB(snapshot.ram_used_bytes) + ' / ' + bytesToGiB(snapshot.ram_total_bytes));
+    }
+
+    if (snapshot.cpu_usage_pct !== null && snapshot.cpu_usage_pct !== undefined) {
+      lines.push('CPU usage: ' + formatPercent(snapshot.cpu_usage_pct));
+    } else {
+      lines.push('CPU usage: warming up');
+    }
+
+    if (snapshot.gpus && snapshot.gpus.length > 0) {
+      snapshot.gpus.forEach(function(gpu) {
+        lines.push(
+          'GPU ' + gpu.index + ': ' +
+          bytesToGiB(gpu.memory_used_bytes) + ' / ' + bytesToGiB(gpu.memory_total_bytes) +
+          ' used, ' + formatPercent(gpu.utilization_gpu_pct) + ' util'
+        );
+      });
+    } else {
+      lines.push('GPU metrics: unavailable');
+    }
+
+    if (snapshot.last_error) {
+      lines.push('Last error: ' + snapshot.last_error);
+    }
+
+    return lines.join('\n');
+  }
+
+  function renderMachineHealthTable(machine) {
+    var tableContainer = document.getElementById('machineHealthTable');
+    if (!machine || !machine.instances || machine.instances.length === 0) {
+      tableContainer.innerHTML = '<p>No machine instances available.</p>';
+      return;
+    }
+
+    var rowsHtml = machine.instances.map(function(machineInstance) {
+      var snapshot = nodeHealth[machineInstance.instance_id];
+      var indicatorColor = getHealthColor(snapshot);
+      var indicatorLabel = (snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined)
+        ? Number(snapshot.fitness_score).toFixed(0)
+        : 'n/a';
+      var tooltipText = buildHealthTooltip(machineInstance, snapshot)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      return '' +
+        '<tr>' +
+          '<td>' + displayHostname(machineInstance) + '</td>' +
+          '<td>' +
+            '<span class="health-indicator" title="' + tooltipText + '">' +
+              '<span class="health-indicator-dot" style="background-color: ' + indicatorColor + ';"></span>' +
+              '<span class="health-indicator-label">' + indicatorLabel + '</span>' +
+            '</span>' +
+          '</td>' +
+        '</tr>';
+    }).join('');
+
+    tableContainer.innerHTML =
+      '<table class="machine-health-table">' +
+        '<thead>' +
+          '<tr><th>Hostname</th><th>Health</th></tr>' +
+        '</thead>' +
+        '<tbody>' + rowsHtml + '</tbody>' +
+      '</table>';
+  }
 
   function displayMachineDetailsFromFiltered(index) {
     var detailsDiv = document.getElementById('machineDetails');
     if (!filteredMachinesList[index]) {
       detailsDiv.innerHTML = "<p>No machines available</p>";
+      document.getElementById('machineHealthTable').innerHTML = "<p>No machines available</p>";
       return;
     }
     var machine = filteredMachinesList[index];
@@ -68,6 +234,7 @@
     detailsHtml += '</ul>';
 
     detailsDiv.innerHTML = detailsHtml;
+    renderMachineHealthTable(machine);
   }
 
   function populateMachineOptions() {
@@ -82,6 +249,7 @@
       opt.disabled = true;
       machineSelect.appendChild(opt);
       document.getElementById('machineDetails').innerHTML = "<p>No machines available</p>";
+      document.getElementById('machineHealthTable').innerHTML = "<p>No machines available</p>";
       return;
     }
 

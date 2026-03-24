@@ -9,22 +9,14 @@ import time
 from dataclasses import asdict, dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from .machine_registry import MachineInstance, MachineRegistry, normalize_endpoint
+
 
 DEFAULT_MONITOR_USERNAME = "monitorbot"
 DEFAULT_MONITOR_KEY_PATH = "~/.ssh/id_rsa"
 DEFAULT_POLL_INTERVAL_SECONDS = 30
 DEFAULT_CONNECT_TIMEOUT_SECONDS = 10
 DEFAULT_STALE_AFTER_SECONDS = 90
-
-
-@dataclass(frozen=True)
-class NodeTarget:
-    hostname: str
-    ssh_port: int
-
-    @property
-    def cache_key(self) -> str:
-        return f"{self.hostname}:{self.ssh_port}"
 
 
 @dataclass
@@ -48,6 +40,8 @@ class CollectedNodeMetrics:
 
 @dataclass
 class NodeSnapshot:
+    machine_instance_id: str
+    endpoint: str
     hostname: str
     ssh_port: int
     last_success_at: Optional[float] = None
@@ -63,6 +57,15 @@ class NodeSnapshot:
     fitness_score: Optional[float] = None
     previous_cpu_sample: Optional[Tuple[int, ...]] = None
 
+    @classmethod
+    def from_machine_instance(cls, machine_instance: MachineInstance) -> "NodeSnapshot":
+        return cls(
+            machine_instance_id=machine_instance.instance_id,
+            endpoint=machine_instance.endpoint,
+            hostname=machine_instance.hostname,
+            ssh_port=machine_instance.ssh_port,
+        )
+
 
 class NodeFitnessScorer:
     GPU_MEMORY_HEADROOM_WEIGHT = 0.40
@@ -70,14 +73,7 @@ class NodeFitnessScorer:
     GPU_IDLE_WEIGHT = 0.25
     CPU_IDLE_WEIGHT = 0.10
 
-    def score(
-        self,
-        *,
-        gpus: Sequence[GPUMetrics],
-        ram_total_bytes: Optional[int],
-        ram_available_bytes: Optional[int],
-        cpu_usage_pct: Optional[float],
-    ) -> Optional[float]:
+    def score(self, *, gpus: Sequence[GPUMetrics], ram_total_bytes: Optional[int], ram_available_bytes: Optional[int], cpu_usage_pct: Optional[float]) -> Optional[float]:
         components: List[Tuple[float, float]] = []
 
         gpu_memory_headroom_values = [
@@ -120,7 +116,7 @@ class NodeHealthMonitor:
     def __init__(
         self,
         logger: Optional[logging.Logger],
-        remote_hosts: Sequence[object],
+        machine_registry: MachineRegistry,
         *,
         ssh_username: str = DEFAULT_MONITOR_USERNAME,
         ssh_key_path: str = DEFAULT_MONITOR_KEY_PATH,
@@ -131,7 +127,7 @@ class NodeHealthMonitor:
         time_fn=time.time,
     ):
         self.log = logger or logging.getLogger(__name__)
-        self.remote_hosts = remote_hosts
+        self.machine_registry = machine_registry
         self.ssh_username = ssh_username
         self.ssh_key_path = ssh_key_path
         self.poll_interval_seconds = poll_interval_seconds
@@ -141,7 +137,7 @@ class NodeHealthMonitor:
         self.time_fn = time_fn
 
         self._task: Optional[asyncio.Task] = None
-        self._cache: Dict[str, NodeSnapshot] = {}
+        self._cache: Dict[MachineInstance, NodeSnapshot] = {}
 
     def start(self) -> bool:
         if self._task is not None and not self._task.done():
@@ -170,30 +166,33 @@ class NodeHealthMonitor:
             pass
 
     async def refresh_all(self):
-        targets = dedupe_node_targets(self.remote_hosts)
-        target_keys = {target.cache_key for target in targets}
+        machine_instances = tuple(self.machine_registry.machine_instances)
+        active_instances = set(machine_instances)
 
-        for target in targets:
-            self._cache.setdefault(target.cache_key, NodeSnapshot(target.hostname, target.ssh_port))
+        for machine_instance in machine_instances:
+            self._cache.setdefault(machine_instance, NodeSnapshot.from_machine_instance(machine_instance))
 
-        for cache_key in list(self._cache.keys()):
-            if cache_key not in target_keys:
-                del self._cache[cache_key]
+        for cached_machine_instance in list(self._cache.keys()):
+            if cached_machine_instance not in active_instances:
+                del self._cache[cached_machine_instance]
 
-        if not targets:
+        if not machine_instances:
             return
 
-        await asyncio.gather(*(self._refresh_target(target) for target in targets))
+        await asyncio.gather(*(self._refresh_machine_instance(machine_instance) for machine_instance in machine_instances))
 
     def get_all_snapshots(self) -> Dict[str, Dict[str, object]]:
         return {
-            cache_key: asdict(copy.deepcopy(snapshot))
-            for cache_key, snapshot in self._cache.items()
+            machine_instance.instance_id: asdict(copy.deepcopy(snapshot))
+            for machine_instance, snapshot in self._cache.items()
         }
 
-    def get_snapshot(self, hostname_or_hostport: str) -> Optional[Dict[str, object]]:
-        hostname, ssh_port = parse_hostname_port(hostname_or_hostport)
-        snapshot = self._cache.get(f"{hostname}:{ssh_port}")
+    def get_snapshot(self, machine_instance_identifier_or_endpoint: str) -> Optional[Dict[str, object]]:
+        machine_instance = self.machine_registry.resolve_instance(machine_instance_identifier_or_endpoint)
+        if machine_instance is None:
+            return None
+
+        snapshot = self._cache.get(machine_instance)
         if snapshot is None:
             return None
         return asdict(copy.deepcopy(snapshot))
@@ -210,12 +209,12 @@ class NodeHealthMonitor:
             self.log.info("[NodeHealthMonitor] Shared node health monitor task stopped.")
             raise
 
-    async def _refresh_target(self, target: NodeTarget):
+    async def _refresh_machine_instance(self, machine_instance: MachineInstance):
         now = self.time_fn()
-        previous_snapshot = self._cache.get(target.cache_key, NodeSnapshot(target.hostname, target.ssh_port))
+        previous_snapshot = self._cache.get(machine_instance, NodeSnapshot.from_machine_instance(machine_instance))
 
         try:
-            collected_metrics = await self._collect_target_metrics(target)
+            collected_metrics = await self._collect_machine_metrics(machine_instance)
             cpu_usage_pct = compute_cpu_usage_pct(previous_snapshot.previous_cpu_sample, collected_metrics.cpu_sample)
             fitness_score = self.scorer.score(
                 gpus=collected_metrics.gpus,
@@ -224,9 +223,11 @@ class NodeHealthMonitor:
                 cpu_usage_pct=cpu_usage_pct,
             )
 
-            self._cache[target.cache_key] = NodeSnapshot(
-                hostname=target.hostname,
-                ssh_port=target.ssh_port,
+            self._cache[machine_instance] = NodeSnapshot(
+                machine_instance_id=machine_instance.instance_id,
+                endpoint=machine_instance.endpoint,
+                hostname=machine_instance.hostname,
+                ssh_port=machine_instance.ssh_port,
                 last_success_at=now,
                 last_attempt_at=now,
                 last_error=None,
@@ -242,33 +243,29 @@ class NodeHealthMonitor:
             )
             self.log.debug(
                 "[NodeHealthMonitor] Refreshed metrics for %s with fitness %s.",
-                target.cache_key,
+                machine_instance.instance_id,
                 fitness_score,
             )
         except Exception as error:
-            stale = is_snapshot_stale(
-                previous_snapshot.last_success_at,
-                now,
-                self.stale_after_seconds,
-            )
+            stale = is_snapshot_stale(previous_snapshot.last_success_at, now, self.stale_after_seconds)
             failure_snapshot = copy.deepcopy(previous_snapshot)
             failure_snapshot.last_attempt_at = now
             failure_snapshot.last_error = str(error)
             failure_snapshot.healthy = False
             failure_snapshot.stale = stale
-            self._cache[target.cache_key] = failure_snapshot
+            self._cache[machine_instance] = failure_snapshot
             self.log.info(
                 "[NodeHealthMonitor] Failed to refresh %s: %s",
-                target.cache_key,
+                machine_instance.instance_id,
                 error,
             )
 
-    async def _collect_target_metrics(self, target: NodeTarget) -> CollectedNodeMetrics:
+    async def _collect_machine_metrics(self, machine_instance: MachineInstance) -> CollectedNodeMetrics:
         asyncssh = _load_asyncssh()
         ssh_key_path = os.path.expanduser(self.ssh_key_path)
         async with asyncssh.connect(
-            target.hostname,
-            port=target.ssh_port,
+            machine_instance.hostname,
+            port=machine_instance.ssh_port,
             username=self.ssh_username,
             client_keys=[ssh_key_path],
             known_hosts=None,
@@ -280,27 +277,7 @@ class NodeHealthMonitor:
 
 
 def parse_hostname_port(hostname_or_hostport: str) -> Tuple[str, int]:
-    if hostname_or_hostport.count(":") == 1:
-        hostname, port = hostname_or_hostport.rsplit(":", 1)
-        if port.isdigit():
-            return hostname, int(port)
-    return hostname_or_hostport, 22
-
-
-def dedupe_node_targets(remote_hosts: Sequence[object]) -> List[NodeTarget]:
-    deduped_targets: List[NodeTarget] = []
-    seen = set()
-
-    for remote_host in remote_hosts:
-        for raw_hostname in getattr(remote_host, "hostnames", []):
-            hostname, ssh_port = parse_hostname_port(raw_hostname)
-            target = NodeTarget(hostname, ssh_port)
-            if target.cache_key in seen:
-                continue
-            seen.add(target.cache_key)
-            deduped_targets.append(target)
-
-    return deduped_targets
+    return normalize_endpoint(hostname_or_hostport)
 
 
 def build_remote_metrics_command() -> str:
@@ -378,9 +355,7 @@ def parse_gpu_metrics(gpu_lines: Sequence[str]) -> List[GPUMetrics]:
         memory_total_bytes = mib_to_bytes(memory_total_mib)
         memory_headroom_ratio = None
         if memory_total_bytes > 0:
-            memory_headroom_ratio = _clamp_ratio(
-                1.0 - (memory_used_bytes / memory_total_bytes)
-            )
+            memory_headroom_ratio = _clamp_ratio(1.0 - (memory_used_bytes / memory_total_bytes))
         idle_ratio = _clamp_ratio(1.0 - (utilization_gpu_pct / 100.0))
 
         gpus.append(
@@ -464,11 +439,7 @@ def compute_cpu_usage_pct(
     return round(_clamp_ratio(cpu_usage_ratio) * 100.0, 2)
 
 
-def is_snapshot_stale(
-    last_success_at: Optional[float],
-    now: float,
-    stale_after_seconds: int,
-) -> bool:
+def is_snapshot_stale(last_success_at: Optional[float], now: float, stale_after_seconds: int) -> bool:
     if last_success_at is None:
         return True
     return (now - last_success_at) >= stale_after_seconds

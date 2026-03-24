@@ -11,6 +11,7 @@ from .exceptions.jupyter_html_exception import JupyterHubHTMLException
 from .state_manager import spawner_load_state, spawner_get_state, spawner_clear_state
 from .account_manager import get_privilege, get_safe_username
 from .machine_manager import MachineManager
+from .machine_registry import MachineRegistry
 from .node_health_monitor import NodeHealthMonitor
 from .notebook_manager import NotebookManager
 from .minio_manager import MinIOManager
@@ -41,14 +42,30 @@ class MLHubSpawner(Spawner):
     # Class-level singleton instance for node health monitoring
     _node_health_monitor = None
 
+    # Class-level singleton instance for the shared machine registry
+    _machine_registry = None
+
+    # Used to detect config drift after the first registry build.
+    _machine_registry_signature = None
+    _machine_registry_warning_emitted = False
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         #=== SINGLETONS ===
         cls = type(self)
+        current_config_signature = MachineRegistry.compute_config_signature(self.remote_hosts)
+        if cls._machine_registry is None:
+            cls._machine_registry = MachineRegistry.from_config(self.remote_hosts)
+            cls._machine_registry_signature = current_config_signature
+        elif cls._machine_registry_signature != current_config_signature and not cls._machine_registry_warning_emitted:
+            self.log.warning(
+                "[MLHubSpawner] remote_hosts config changed after the shared machine registry was initialized. Keeping the first loaded registry for this Hub process."
+            )
+            cls._machine_registry_warning_emitted = True
+
         if cls._machine_manager is None:
-            # Here, self.remote_hosts is fully initialized by traitlets.
-            cls._machine_manager = MachineManager(self.log, self.remote_hosts)
+            cls._machine_manager = MachineManager(self.log, cls._machine_registry)
 
         if cls._machine_manager_lock is None:
             cls._machine_manager_lock = Lock()
@@ -58,7 +75,7 @@ class MLHubSpawner(Spawner):
             cls._minio_manager = MinIOManager(self.minio_url, self.minio_access_key, self.minio_secret_key)
 
         if cls._node_health_monitor is None:
-            cls._node_health_monitor = NodeHealthMonitor(self.log, self.remote_hosts)
+            cls._node_health_monitor = NodeHealthMonitor(self.log, cls._machine_registry)
 
         #=== NORMAL INIT ===
         self.user_unique_identifier = self.user.name
@@ -71,6 +88,9 @@ class MLHubSpawner(Spawner):
         self.state_pid = 0
         self.state_hostname = None
         self.state_notebook_port = None
+        self.state_machine_instance_id = None
+        self.state_machine_instance = None
+        self.state_shared_access_enabled = None
 
         self.machine_offers = {}
         self._ensure_node_health_monitor_started()
@@ -86,11 +106,11 @@ class MLHubSpawner(Spawner):
             return {}
         return cls._node_health_monitor.get_all_snapshots()
 
-    def get_node_health_snapshot(self, hostname_or_hostport: str):
+    def get_node_health_snapshot(self, machine_instance_identifier_or_endpoint: str):
         cls = type(self)
         if cls._node_health_monitor is None:
             return None
-        return cls._node_health_monitor.get_snapshot(hostname_or_hostport)
+        return cls._node_health_monitor.get_snapshot(machine_instance_identifier_or_endpoint)
 
     #==== STARTING, STOPPPING, POLLING ====
     def __slowError(self, errorMessage : str):
@@ -98,6 +118,7 @@ class MLHubSpawner(Spawner):
         raise JupyterHubHTMLException(errorMessage) 
 
     async def start(self):
+        self._ensure_node_health_monitor_started()
         selected_machine_index = self.user_options['machineSelect']
         shared_access_enabled = self.user_options['sharedAccess']
 
@@ -114,21 +135,28 @@ class MLHubSpawner(Spawner):
         #=== FIND MACHINE ===
         self.__class__._machine_manager_lock.acquire()
 
-        found_machine_ip_port = self.__class__._machine_manager.find_machine(chosen_machine_type, shared_access_enabled)
+        found_machine_instance = self.__class__._machine_manager.find_machine(chosen_machine_type, shared_access_enabled)
 
-        if found_machine_ip_port == None:
+        if found_machine_instance == None:
             self.__class__._machine_manager_lock.release()
             self.__slowError("We're sorry, but there is no available machine that meets your current requirements.")
 
-        self.log.info(f"Found machine for {self.user_unique_identifier}: {chosen_machine_type.codename} at {found_machine_ip_port}.")
+        self.log.info(
+            f"Found machine for {self.user_unique_identifier}: {chosen_machine_type.codename} at {found_machine_instance.endpoint}."
+        )
         #=== RESERVE SPOT ===
-        if not self.__class__._machine_manager.take_machine(chosen_machine_type, found_machine_ip_port, self.user_unique_identifier, shared_access_enabled):
+        if not self.__class__._machine_manager.take_machine(chosen_machine_type, found_machine_instance, self.user_unique_identifier, shared_access_enabled):
             self.__class__._machine_manager_lock.release()
             self.__slowError("We're sorry, but we were unable to reserve you a spot on your desired machine.")
 
-        self.log.info(f"Reserved a spot for {self.user_unique_identifier} on {found_machine_ip_port}. Shared access: {shared_access_enabled}")
+        self.log.info(
+            f"Reserved a spot for {self.user_unique_identifier} on {found_machine_instance.endpoint}. Shared access: {shared_access_enabled}"
+        )
 
-        self.state_hostname = found_machine_ip_port
+        self.state_machine_instance = found_machine_instance
+        self.state_machine_instance_id = found_machine_instance.instance_id
+        self.state_hostname = found_machine_instance.endpoint
+        self.state_shared_access_enabled = shared_access_enabled
         self.__class__._machine_manager_lock.release()
 
         #=== CREATE BUCKET ===
@@ -159,17 +187,19 @@ class MLHubSpawner(Spawner):
 
 
         #=== LAUNCH NOTEBOOK ===
-        split_hostname = found_machine_ip_port.split(":")
-        host_ip = split_hostname[0]
-        host_port = split_hostname[1] 
+        host_ip = found_machine_instance.hostname
+        host_port = str(found_machine_instance.ssh_port)
 
         (notebook_port, notebook_pid) = await self.notebook_manager.launch_notebook(self.get_env(), self.hub.api_url, host_ip, host_port)
 
         if notebook_port == None or notebook_pid == None:
             self.__class__._machine_manager.release_machine(self.user_unique_identifier)
+            spawner_clear_state(self)
             self.__slowError("We're sorry, we were unable to launch your notebook instance. Your reserved spot was therefore released.")
 
-        self.log.info(f"Launched a notebook for {self.user_unique_identifier} on {found_machine_ip_port} with port {notebook_port} and PID {notebook_pid}")
+        self.log.info(
+            f"Launched a notebook for {self.user_unique_identifier} on {found_machine_instance.endpoint} with port {notebook_port} and PID {notebook_pid}"
+        )
 
         self.state_notebook_port = notebook_port
         self.state_pid = notebook_pid
@@ -178,6 +208,7 @@ class MLHubSpawner(Spawner):
 
 
     async def poll(self):
+        self._ensure_node_health_monitor_started()
         #=== NOT CONFIGURED ===
         if not self.state_pid or self.state_pid == 0:
             self.clear_state()
@@ -192,6 +223,7 @@ class MLHubSpawner(Spawner):
         return None
 
     async def stop(self, now = False):
+        self._ensure_node_health_monitor_started()
         #=== KILL THE NOTEBOOK ===
         await self.notebook_manager.kill_notebook()
 
@@ -210,7 +242,8 @@ class MLHubSpawner(Spawner):
         super().load_state(state)
         spawner_load_state(self, state)
         # Load the state into the NotebookManager as well, now that we have it (if any)
-        self.notebook_manager.restore_state(self.state_pid, self.state_hostname, self.state_notebook_port)
+        if self.state_machine_instance_id and self.state_hostname and self.state_notebook_port:
+            self.notebook_manager.restore_state(self.state_pid, self.state_hostname, self.state_notebook_port)
 
     # Retrieve the current state of the spawner as a dictionary.
     def get_state(self):
@@ -227,12 +260,20 @@ class MLHubSpawner(Spawner):
 
     # Return the actual HTML page for the form. Only show users things they have access to.
     def _options_form_default(self):
+        self._ensure_node_health_monitor_started()
         available_remote_hosts = self.__class__._machine_manager.get_available_types(self.user_privilege_level)
 
         self.machine_offers[self.user_unique_identifier] = available_remote_hosts
 
-        available_remote_hosts_dictionary = [iterated_host.toDictionary() for iterated_host in available_remote_hosts]
-        return self.form_builder.get_html_page(available_remote_hosts_dictionary)
+        available_remote_hosts_dictionary = [
+            iterated_host.to_display_dict(include_instances=True)
+            for iterated_host in available_remote_hosts
+        ]
+
+        return self.form_builder.get_html_page(
+            available_remote_hosts_dictionary,
+            self.get_node_health_snapshots(),
+        )
 
     # Parse the form data into the correct types. The values here are available in the "start" method as "self.user_options"
     def options_from_form(self, formdata):
