@@ -3,3 +3,9 @@ dist/
 mlhubspawner.egg-info
 __pycache__/
 SECERTS.md
+tests/__init__.py
+tests/test_form_builder.py
+tests/test_machine_manager.py
+tests/test_node_health_monitor.py
+tests/test_runtime_registry.py
+tests/test_state_manager.py

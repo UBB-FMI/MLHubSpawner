@@ -2,13 +2,53 @@ import json
 import os
 
 class JupyterFormBuilder():
+    SHELL_FILE = os.path.join("html", "form_shell.html")
+
     def __init__(self):
         try:
-            resource_path = os.path.join(os.path.dirname(__file__), 'resources', 'form.html')
-            with open(resource_path, 'r') as file:
-                self.form_html_content = file.read()
+            self.form_html_content = self._build_form_template()
         except Exception as e:
             self.form_html_content = f"FORM_TEMPLATE_ERROR: {e}"
+
+    def _resource_root(self):
+        return os.path.join(os.path.dirname(__file__), "resources")
+
+    def _read_resource(self, relative_path):
+        resource_path = os.path.join(self._resource_root(), relative_path)
+        with open(resource_path, "r", encoding="utf-8") as file:
+            return file.read()
+
+    def _discover_resources(self, subdirectory, extension):
+        discovered_resources = []
+        root_directory = os.path.join(self._resource_root(), subdirectory)
+
+        for current_root, _, filenames in os.walk(root_directory):
+            for filename in filenames:
+                if not filename.endswith(extension):
+                    continue
+
+                resource_path = os.path.join(current_root, filename)
+                relative_path = os.path.relpath(resource_path, self._resource_root())
+                discovered_resources.append(relative_path)
+
+        return tuple(sorted(discovered_resources))
+
+    def _build_form_template(self):
+        shell_html = self._read_resource(self.SHELL_FILE)
+        bundled_css = "\n\n".join(
+            self._read_resource(path)
+            for path in self._discover_resources("css", ".css")
+        )
+        bundled_js = "\n\n".join(
+            self._read_resource(path)
+            for path in self._discover_resources("js", ".js")
+        )
+
+        return (
+            shell_html
+            .replace("<!-- INLINE_CSS -->", f"<style>\n{bundled_css}\n</style>")
+            .replace("<!-- INLINE_JS -->", f"<script>\n{bundled_js}\n</script>")
+        )
 
     def _safe_fetch(self, formdata, key, default):
         return formdata[key][0] if key in formdata else default

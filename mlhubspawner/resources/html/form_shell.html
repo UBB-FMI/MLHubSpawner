@@ -1,0 +1,60 @@
+<!-- INLINE_CSS -->
+
+<div class="mlhub-shell">
+  <section class="mlhub-hero">
+    <div>
+      <h2 class="mlhub-hero-title">Choose your machine type and inspect the live nodes behind it.</h2>
+      <p class="mlhub-hero-copy">
+        Start with the hardware profile you need, then expand the node list below to inspect current VRAM, RAM, GPU, and CPU usage before launching your session.
+      </p>
+      <div class="mlhub-hero-actions">
+        <a class="mlhub-link-pill is-strong" href="https://github.com/KiralyCraft/MLHubSpawner"><strong>Contribute on GitHub</strong></a>
+        <a class="mlhub-link-pill" href="mailto:alexandru.kiraly@ubbcluj.ro">Contact maintainer</a>
+      </div>
+    </div>
+    <aside class="mlhub-support-card">
+      <div>
+        <div class="mlhub-support-kicker">Need help?</div>
+        <h3 class="mlhub-support-title">Join the support channel</h3>
+        <p class="mlhub-support-copy">
+          If a machine type is unclear or a node looks unhealthy, ask in Teams before you start a long-running session.
+        </p>
+      </div>
+      <a class="mlhub-support-link" href="https://teams.microsoft.com/l/team/19%3AM2spXKLZbWZKrwFGiVyZI8GQT7sJvRLLnSDf2DlTuh81%40thread.tacv2/conversations?groupId=0676c47a-e60e-48c3-bbfa-83cf418b69b4&tenantId=5a4863ed-40c8-4fd5-8298-fbfdb7f13095">Join support channel</a>
+    </aside>
+  </section>
+
+  <div class="mlhub-layout">
+    <section class="mlhub-column">
+      <div class="mlhub-card">
+        <div class="mlhub-card-header">
+          <div>
+            <h3 class="mlhub-card-title">Choose your machine type</h3>
+            <p class="mlhub-card-copy">Each card shows the main hardware profile and the best live health score currently available for that type.</p>
+          </div>
+        </div>
+
+        <label for="machineSelect" class="sr-only">Select your machine type</label>
+        <select class="machine-select-native" name="machineSelect" id="machineSelect" onchange="updateMachineDetails();"></select>
+
+        <div id="machineCardGrid" class="machine-card-grid"></div>
+      </div>
+    </section>
+
+    <section class="mlhub-column">
+      <div id="machineDetails" class="mlhub-card"></div>
+    </section>
+  </div>
+
+  <div class="mlhub-card node-health-card">
+    <div class="mlhub-card-header">
+      <div>
+        <h3 class="mlhub-card-title">Node health</h3>
+        <p class="mlhub-card-copy">Click any node to expand its current usage details. Health scores closer to 100 mean more headroom.</p>
+      </div>
+    </div>
+    <div id="machineHealthTable"></div>
+  </div>
+</div>
+
+<!-- INLINE_JS -->
