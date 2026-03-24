@@ -220,5 +220,7 @@ class MachineManager:
         for machine_type in self.machine_registry.machine_types:
             if machine_type.privileged_access_required and user_privilege_level < 1:
                 continue
+            if user_privilege_level < 1 and not machine_type.shared_access_enabled:
+                continue
             available.append(machine_type)
         return available

@@ -1,15 +1,15 @@
 <style>
   :root {
-    --mlhub-bg: #151c23;
-    --mlhub-panel: #1d252e;
-    --mlhub-panel-strong: #222c37;
-    --mlhub-panel-soft: #263240;
     --mlhub-border: rgba(214, 223, 235, 0.12);
     --mlhub-text: #eef3f8;
     --mlhub-muted: #9ba8b9;
     --mlhub-accent: #ff7a1a;
-    --mlhub-accent-strong: #ff9447;
-    --mlhub-accent-soft: rgba(255, 122, 26, 0.16);
+    --mlhub-accent-strong: #ff9b57;
+    --mlhub-accent-soft: rgba(255, 122, 26, 0.15);
+    --mlhub-panel: rgba(25, 33, 41, 0.96);
+    --mlhub-panel-soft: rgba(31, 41, 51, 0.94);
+    --mlhub-card: rgba(18, 24, 31, 0.86);
+    --mlhub-card-strong: rgba(24, 32, 40, 0.94);
     --mlhub-cyan: #4fd1c5;
     --mlhub-good: #38c172;
     --mlhub-warn: #f6c445;
@@ -28,44 +28,50 @@
     color: var(--mlhub-text);
   }
 
-  .mlhub-shell a {
-    color: #8ccfff;
+  .mlhub-shell * {
+    box-sizing: border-box;
   }
 
   .mlhub-shell p {
     margin: 0;
   }
 
-  .mlhub-hero {
-    position: relative;
+  .mlhub-shell a {
+    color: #9dd9ff;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
     overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .mlhub-card {
+    padding: 24px;
+    border: 1px solid var(--mlhub-border);
+    border-radius: var(--mlhub-radius-xl);
+    background: linear-gradient(180deg, var(--mlhub-panel-soft), var(--mlhub-panel));
+    box-shadow: var(--mlhub-shadow);
+  }
+
+  .mlhub-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.9fr);
+    gap: 20px;
     padding: 28px 30px;
     border: 1px solid var(--mlhub-border);
     border-radius: var(--mlhub-radius-xl);
     background:
-      radial-gradient(circle at top right, rgba(79, 209, 197, 0.22), transparent 34%),
-      radial-gradient(circle at left center, rgba(255, 122, 26, 0.16), transparent 28%),
-      linear-gradient(145deg, rgba(30, 39, 49, 0.96), rgba(21, 28, 35, 0.98));
+      radial-gradient(circle at top right, rgba(79, 209, 197, 0.18), transparent 34%),
+      radial-gradient(circle at left center, rgba(255, 122, 26, 0.15), transparent 28%),
+      linear-gradient(145deg, rgba(31, 41, 51, 0.98), rgba(20, 27, 34, 0.98));
     box-shadow: var(--mlhub-shadow);
-  }
-
-  .mlhub-hero::after {
-    content: "";
-    position: absolute;
-    inset: auto -80px -120px auto;
-    width: 220px;
-    height: 220px;
-    border-radius: 999px;
-    background: rgba(255, 148, 71, 0.12);
-    filter: blur(10px);
-  }
-
-  .mlhub-hero-top {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: flex-start;
   }
 
   .mlhub-eyebrow {
@@ -91,7 +97,7 @@
     box-shadow: 0 0 0 6px rgba(255, 122, 26, 0.12);
   }
 
-  .mlhub-hero h2 {
+  .mlhub-hero-title {
     margin: 14px 0 10px;
     font-size: clamp(32px, 4vw, 52px);
     line-height: 1.02;
@@ -99,79 +105,112 @@
   }
 
   .mlhub-hero-copy {
-    max-width: 760px;
+    max-width: 720px;
     color: #d0d8e3;
-    font-size: 18px;
-    line-height: 1.55;
+    font-size: 17px;
+    line-height: 1.6;
   }
 
-  .mlhub-link-strip {
+  .mlhub-hero-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 22px;
   }
 
   .mlhub-link-pill {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
+    padding: 11px 15px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.04);
     color: var(--mlhub-text);
     font-size: 14px;
     text-decoration: none;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
   }
 
   .mlhub-link-pill:hover {
-    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.12);
     text-decoration: none;
   }
 
-  .mlhub-mini-board {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(110px, 1fr));
-    gap: 12px;
-    min-width: min(100%, 360px);
+  .mlhub-link-pill.is-strong {
+    background: rgba(255, 122, 26, 0.14);
+    border-color: rgba(255, 148, 71, 0.22);
+    color: #ffe2ce;
   }
 
-  .mlhub-mini-stat {
-    padding: 16px 16px 14px;
-    border-radius: var(--mlhub-radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(7, 11, 16, 0.22);
-    backdrop-filter: blur(10px);
+  .mlhub-link-pill.is-strong strong {
+    font-weight: 800;
   }
 
-  .mlhub-mini-stat-label {
-    display: block;
-    color: var(--mlhub-muted);
-    font-size: 11px;
+  .mlhub-support-card {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 148, 71, 0.24);
+    background:
+      radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 36%),
+      linear-gradient(145deg, rgba(255, 122, 26, 0.24), rgba(255, 122, 26, 0.12)),
+      rgba(28, 20, 14, 0.88);
+    box-shadow: 0 20px 36px rgba(255, 122, 26, 0.16);
+  }
+
+  .mlhub-support-kicker {
+    color: #ffd8be;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
   }
 
-  .mlhub-mini-stat-value {
-    display: block;
-    margin-top: 8px;
+  .mlhub-support-title {
+    margin: 8px 0 0;
     font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.05em;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
   }
 
-  .mlhub-mini-stat-note {
-    display: block;
-    margin-top: 4px;
-    color: #c2ccd9;
-    font-size: 13px;
+  .mlhub-support-copy {
+    color: #ffe4d4;
+    line-height: 1.6;
+  }
+
+  .mlhub-support-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 236, 220, 0.24);
+    background: linear-gradient(135deg, #ffbf90, #ff8d3f);
+    color: #3f1700;
+    font-size: 15px;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 18px 34px rgba(25, 9, 0, 0.26);
+  }
+
+  .mlhub-support-link:hover {
+    color: #3f1700;
+    text-decoration: none;
+    filter: brightness(1.02);
   }
 
   .mlhub-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.95fr);
+    grid-template-columns: 1fr;
     gap: 22px;
     margin-top: 22px;
   }
@@ -180,15 +219,6 @@
     display: grid;
     gap: 22px;
     align-content: start;
-  }
-
-  .mlhub-card {
-    padding: 24px;
-    border: 1px solid var(--mlhub-border);
-    border-radius: var(--mlhub-radius-xl);
-    background:
-      linear-gradient(180deg, rgba(34, 44, 55, 0.92), rgba(26, 34, 42, 0.96));
-    box-shadow: var(--mlhub-shadow);
   }
 
   .mlhub-card-header {
@@ -201,15 +231,15 @@
 
   .mlhub-card-title {
     margin: 0;
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 25px;
+    font-weight: 800;
     letter-spacing: -0.03em;
   }
 
   .mlhub-card-copy {
     margin-top: 6px;
     color: var(--mlhub-muted);
-    line-height: 1.5;
+    line-height: 1.55;
   }
 
   .mlhub-card-tag {
@@ -234,21 +264,9 @@
     pointer-events: none;
   }
 
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
   .machine-card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 14px;
   }
 
@@ -259,7 +277,7 @@
     border-radius: 20px;
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
-      rgba(17, 23, 30, 0.78);
+      var(--mlhub-card);
     color: var(--mlhub-text);
     text-align: left;
     transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
@@ -268,20 +286,19 @@
 
   .machine-card:hover {
     transform: translateY(-3px);
-    border-color: rgba(255, 148, 71, 0.4);
+    border-color: rgba(255, 148, 71, 0.34);
     box-shadow: 0 18px 30px rgba(4, 8, 14, 0.28);
   }
 
   .machine-card.is-active {
     border-color: rgba(255, 148, 71, 0.58);
     background:
-      linear-gradient(180deg, rgba(255, 122, 26, 0.12), rgba(79, 209, 197, 0.05)),
-      rgba(17, 23, 30, 0.88);
-    box-shadow: 0 20px 36px rgba(255, 122, 26, 0.18);
-    transform: translateY(-2px);
+      linear-gradient(180deg, rgba(255, 122, 26, 0.11), rgba(79, 209, 197, 0.05)),
+      var(--mlhub-card-strong);
+    box-shadow: 0 20px 36px rgba(255, 122, 26, 0.15);
   }
 
-  .machine-card-top {
+  .machine-card-head {
     display: flex;
     justify-content: space-between;
     gap: 12px;
@@ -290,43 +307,52 @@
 
   .machine-card-name {
     margin: 0;
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 21px;
+    font-weight: 800;
     letter-spacing: -0.03em;
   }
 
-  .machine-card-score {
-    min-width: 48px;
-    padding: 6px 9px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
-    font-size: 12px;
-    font-weight: 700;
-    text-align: center;
-  }
-
   .machine-card-subtitle {
-    margin-top: 8px;
-    color: #c4ceda;
+    margin-top: 6px;
+    color: #c8d2de;
     font-size: 14px;
     line-height: 1.45;
-    min-height: 42px;
   }
 
-  .machine-card-stats {
+  .machine-card-health {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .machine-card-health-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.04);
+  }
+
+  .machine-spec-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 10px;
-    margin-top: 14px;
+    margin-top: 16px;
   }
 
-  .machine-card-stat {
-    padding: 10px;
+  .machine-spec {
+    padding: 11px 12px;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
-  .machine-card-stat-label {
+  .machine-spec-label {
     display: block;
     color: var(--mlhub-muted);
     font-size: 11px;
@@ -335,11 +361,12 @@
     text-transform: uppercase;
   }
 
-  .machine-card-stat-value {
+  .machine-spec-value {
     display: block;
     margin-top: 5px;
     font-size: 15px;
     font-weight: 700;
+    line-height: 1.35;
   }
 
   .machine-card-badges {
@@ -375,15 +402,82 @@
     color: var(--mlhub-muted);
   }
 
-  .share-card {
-    padding: 18px 20px;
+  .selected-profile-title {
+    margin: 0;
+    font-size: 31px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+
+  .selected-profile-copy {
+    margin-top: 8px;
+    color: #c7d1dd;
+    line-height: 1.55;
+  }
+
+  .selected-profile-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .selected-profile-stat {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .selected-profile-stat-label {
+    display: block;
+    color: var(--mlhub-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .selected-profile-stat-value {
+    display: block;
+    margin-top: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .storage-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .storage-chip {
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #d7e1eb;
+    font-weight: 600;
+  }
+
+  .session-options {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
     transition: border-color 150ms ease, background 150ms ease;
   }
 
-  .share-card.is-enabled {
-    border-color: rgba(79, 209, 197, 0.36);
-    background:
-      linear-gradient(180deg, rgba(79, 209, 197, 0.09), rgba(34, 44, 55, 0.96));
+  .session-options.is-enabled {
+    border-color: rgba(79, 209, 197, 0.28);
+    background: linear-gradient(180deg, rgba(79, 209, 197, 0.08), rgba(255, 255, 255, 0.03));
+  }
+
+  .session-options.is-disabled {
+    opacity: 0.86;
   }
 
   .share-toggle {
@@ -397,164 +491,51 @@
   .share-toggle input {
     margin-top: 4px;
     accent-color: var(--mlhub-accent);
-    transform: scale(1.15);
+    transform: scale(1.12);
+  }
+
+  .share-toggle.is-disabled {
+    cursor: default;
   }
 
   .share-toggle-title {
     display: block;
     font-size: 17px;
-    font-weight: 700;
+    font-weight: 800;
   }
 
   .share-toggle-copy {
     display: block;
     margin-top: 4px;
     color: var(--mlhub-muted);
-    line-height: 1.45;
+    line-height: 1.5;
   }
 
-  .selected-machine-title {
-    margin: 0;
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-  }
-
-  .selected-machine-subtitle {
-    margin-top: 8px;
-    color: #c7d1dd;
+  .session-note {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.035);
+    color: #dce5ef;
     line-height: 1.55;
   }
 
-  .selected-machine-stats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 18px;
+  .session-note strong {
+    color: #fff2e6;
   }
 
-  .selected-machine-stat {
-    padding: 16px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+  .session-note.is-warning {
+    border-color: rgba(246, 196, 69, 0.2);
+    background: rgba(246, 196, 69, 0.08);
   }
 
-  .selected-machine-stat-label {
-    display: block;
+  .session-note.is-muted {
     color: var(--mlhub-muted);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
-  .selected-machine-stat-value {
-    display: block;
-    margin-top: 8px;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.35;
-  }
-
-  .selected-machine-storage {
-    margin-top: 18px;
-  }
-
-  .storage-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
-  }
-
-  .storage-chip {
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    color: #d7e1eb;
-    font-weight: 600;
-  }
-
-  .health-summary-grid {
-    display: grid;
-    grid-template-columns: 1.1fr 1fr;
-    gap: 14px;
-    margin-top: 8px;
-  }
-
-  .health-score-panel {
-    padding: 18px;
-    border-radius: 20px;
-    background:
-      radial-gradient(circle at top right, rgba(255, 122, 26, 0.12), transparent 42%),
-      rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-  }
-
-  .health-score-label {
-    display: block;
-    color: var(--mlhub-muted);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .health-score-value {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-top: 12px;
-  }
-
-  .health-score-number {
-    font-size: 48px;
-    font-weight: 700;
-    letter-spacing: -0.06em;
-  }
-
-  .health-score-note {
-    color: #c8d1dd;
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
-  .health-kpis {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .health-kpi {
-    padding: 16px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .health-kpi-label {
-    display: block;
-    color: var(--mlhub-muted);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .health-kpi-value {
-    display: block;
-    margin-top: 7px;
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.05em;
-  }
-
-  .health-hint {
-    margin-top: 14px;
-    color: var(--mlhub-muted);
-    line-height: 1.5;
+  .node-health-card {
+    margin-top: 22px;
   }
 
   .health-list {
@@ -562,44 +543,53 @@
     gap: 12px;
   }
 
-  .health-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 18px;
-    align-items: center;
-    padding: 16px 18px;
+  .health-item {
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.03);
-    transition: transform 130ms ease, border-color 130ms ease, background 130ms ease;
-    cursor: help;
+    overflow: hidden;
   }
 
-  .health-row:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255, 148, 71, 0.32);
-    background: rgba(255, 255, 255, 0.05);
+  .health-item.is-open {
+    border-color: rgba(255, 148, 71, 0.28);
+    background: rgba(255, 255, 255, 0.045);
   }
 
-  .health-row-main {
+  .health-trigger {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    padding: 16px 18px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .health-trigger:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .health-main {
     min-width: 0;
   }
 
-  .health-row-host {
+  .health-host {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.3;
     word-break: break-word;
   }
 
-  .health-row-subtitle {
+  .health-subtitle {
     margin-top: 5px;
     color: var(--mlhub-muted);
     font-size: 13px;
   }
 
   .health-bar {
-    position: relative;
     height: 10px;
     margin-top: 12px;
     border-radius: 999px;
@@ -613,7 +603,7 @@
     transition: width 180ms ease;
   }
 
-  .health-row-meta {
+  .health-meta {
     display: flex;
     gap: 10px;
     align-items: center;
@@ -654,8 +644,91 @@
     min-width: 54px;
     text-align: right;
     font-size: 24px;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: -0.05em;
+  }
+
+  .health-chevron {
+    color: var(--mlhub-muted);
+    font-size: 18px;
+    transition: transform 120ms ease;
+  }
+
+  .health-item.is-open .health-chevron {
+    transform: rotate(90deg);
+  }
+
+  .health-detail {
+    display: none;
+    padding: 0 18px 18px;
+  }
+
+  .health-item.is-open .health-detail {
+    display: block;
+  }
+
+  .health-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .health-detail-card {
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .health-detail-label {
+    display: block;
+    color: var(--mlhub-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .health-detail-value {
+    display: block;
+    margin-top: 7px;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .health-gpu-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .health-gpu-item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .health-gpu-title {
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .health-gpu-copy {
+    margin-top: 5px;
+    color: #d0d8e3;
+    line-height: 1.5;
+  }
+
+  .health-error {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.18);
+    color: #ffd3d3;
+    line-height: 1.5;
   }
 
   .health-empty {
@@ -670,14 +743,13 @@
     max-width: 1260px;
     margin: 0 auto 34px;
     display: block;
-    box-sizing: border-box;
     padding: 18px 24px;
     border: 0;
     border-radius: 18px;
     background: linear-gradient(135deg, var(--mlhub-accent), var(--mlhub-accent-strong));
     color: #fff8f2;
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: -0.02em;
     box-shadow: 0 22px 40px rgba(255, 122, 26, 0.28);
     transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
@@ -690,23 +762,15 @@
   }
 
   @media (max-width: 980px) {
-    .mlhub-shell {
-      margin-top: 18px;
-    }
-
+    .mlhub-hero,
     .mlhub-layout {
-      grid-template-columns: 1fr;
-    }
-
-    .health-summary-grid,
-    .mlhub-mini-board {
       grid-template-columns: 1fr;
     }
   }
 
-  @media (max-width: 640px) {
+  @media (max-width: 720px) {
     .mlhub-shell {
-      width: 100%;
+      margin-top: 18px;
     }
 
     .mlhub-hero,
@@ -715,17 +779,16 @@
       border-radius: 20px;
     }
 
-    .selected-machine-stats,
-    .health-kpis,
-    .machine-card-stats {
+    .selected-profile-stats,
+    .health-detail-grid {
       grid-template-columns: 1fr;
     }
 
-    .health-row {
+    .health-trigger {
       grid-template-columns: 1fr;
     }
 
-    .health-row-meta {
+    .health-meta {
       justify-content: space-between;
     }
   }
@@ -733,37 +796,27 @@
 
 <div class="mlhub-shell">
   <section class="mlhub-hero">
-    <div class="mlhub-hero-top">
-      <div>
-        <span class="mlhub-eyebrow">Production Cluster</span>
-        <h2>Choose the machine profile that fits the session you want to run.</h2>
-        <p class="mlhub-hero-copy">
-          Live node health is already folded into this page. Pick a profile, inspect the fleet, and hover any node row for VRAM, RAM, GPU, and CPU details before you start.
-        </p>
-        <div class="mlhub-link-strip">
-          <a class="mlhub-link-pill" href="https://github.com/KiralyCraft/MLHubSpawner">View project</a>
-          <a class="mlhub-link-pill" href="mailto:alexandru.kiraly@ubbcluj.ro">Contact maintainer</a>
-          <a class="mlhub-link-pill" href="https://teams.microsoft.com/l/team/19%3AM2spXKLZbWZKrwFGiVyZI8GQT7sJvRLLnSDf2DlTuh81%40thread.tacv2/conversations?groupId=0676c47a-e60e-48c3-bbfa-83cf418b69b4&tenantId=5a4863ed-40c8-4fd5-8298-fbfdb7f13095">Join support channel</a>
-        </div>
-      </div>
-      <div class="mlhub-mini-board">
-        <div class="mlhub-mini-stat">
-          <span class="mlhub-mini-stat-label">Mode</span>
-          <span class="mlhub-mini-stat-value">Prod</span>
-          <span class="mlhub-mini-stat-note">Stable environment</span>
-        </div>
-        <div class="mlhub-mini-stat">
-          <span class="mlhub-mini-stat-label">Telemetry</span>
-          <span class="mlhub-mini-stat-value">Live</span>
-          <span class="mlhub-mini-stat-note">Health cache attached</span>
-        </div>
-        <div class="mlhub-mini-stat">
-          <span class="mlhub-mini-stat-label">Workflow</span>
-          <span class="mlhub-mini-stat-value">Fast</span>
-          <span class="mlhub-mini-stat-note">Card-based selection</span>
-        </div>
+    <div>
+      <span class="mlhub-eyebrow">Production Cluster</span>
+      <h2 class="mlhub-hero-title">Choose your machine type and inspect the live nodes behind it.</h2>
+      <p class="mlhub-hero-copy">
+        Start with the hardware profile you need, then expand the node list below to inspect current VRAM, RAM, GPU, and CPU usage before launching your session.
+      </p>
+      <div class="mlhub-hero-actions">
+        <a class="mlhub-link-pill is-strong" href="https://github.com/KiralyCraft/MLHubSpawner"><strong>Contribute on GitHub</strong></a>
+        <a class="mlhub-link-pill" href="mailto:alexandru.kiraly@ubbcluj.ro">Contact maintainer</a>
       </div>
     </div>
+    <aside class="mlhub-support-card">
+      <div>
+        <div class="mlhub-support-kicker">Need help?</div>
+        <h3 class="mlhub-support-title">Join the support channel</h3>
+        <p class="mlhub-support-copy">
+          If a machine type is unclear or a node looks unhealthy, ask in Teams before you start a long-running session.
+        </p>
+      </div>
+      <a class="mlhub-support-link" href="https://teams.microsoft.com/l/team/19%3AM2spXKLZbWZKrwFGiVyZI8GQT7sJvRLLnSDf2DlTuh81%40thread.tacv2/conversations?groupId=0676c47a-e60e-48c3-bbfa-83cf418b69b4&tenantId=5a4863ed-40c8-4fd5-8298-fbfdb7f13095">Join support channel</a>
+    </aside>
   </section>
 
   <div class="mlhub-layout">
@@ -771,10 +824,10 @@
       <div class="mlhub-card">
         <div class="mlhub-card-header">
           <div>
-            <h3 class="mlhub-card-title">Machine Profiles</h3>
-            <p class="mlhub-card-copy">Click a card to preview the profile, node pool, and current cluster signal.</p>
+            <h3 class="mlhub-card-title">Choose your machine type</h3>
+            <p class="mlhub-card-copy">Each card shows the main hardware profile and the best live health score currently available for that type.</p>
           </div>
-          <span class="mlhub-card-tag">Interactive</span>
+          <span class="mlhub-card-tag">Pick one</span>
         </div>
 
         <label for="machineSelect" class="sr-only">Select your machine type</label>
@@ -782,31 +835,20 @@
 
         <div id="machineCardGrid" class="machine-card-grid"></div>
       </div>
-
-      <div id="sharingCard" class="mlhub-card share-card">
-        <label class="share-toggle" for="sharedAccess">
-          <input class="form-check-input" type="checkbox" id="sharedAccess" name="sharedAccess">
-          <span>
-            <span class="share-toggle-title">Shared Access</span>
-            <span class="share-toggle-copy">Turn this on if you are fine sharing a machine with other sessions. Shared-capable profiles will pack users more efficiently.</span>
-          </span>
-        </label>
-      </div>
     </section>
 
     <section class="mlhub-column">
       <div id="machineDetails" class="mlhub-card"></div>
-      <div id="machineHealthSummary" class="mlhub-card"></div>
     </section>
   </div>
 
-  <div class="mlhub-card" style="margin-top: 22px;">
+  <div class="mlhub-card node-health-card">
     <div class="mlhub-card-header">
       <div>
-        <h3 class="mlhub-card-title">Node Health</h3>
-        <p class="mlhub-card-copy">Hover any row for per-node telemetry. Health scores closer to 100 mean more headroom.</p>
+        <h3 class="mlhub-card-title">Node health</h3>
+        <p class="mlhub-card-copy">Click any node to expand its current usage details. Health scores closer to 100 mean more headroom.</p>
       </div>
-      <span class="mlhub-card-tag">Hover for details</span>
+      <span class="mlhub-card-tag">Click to inspect</span>
     </div>
     <div id="machineHealthTable"></div>
   </div>
@@ -816,8 +858,12 @@
   var formPayload = {formPayload};
   var machines = formPayload.machines || [];
   var nodeHealth = formPayload.nodeHealth || {};
+  var uiContext = formPayload.uiContext || {};
   var filteredMachinesList = machines;
   var selectedMachineIndex = 0;
+  var expandedHealthInstanceId = null;
+  var preferredSharedAccessRequested = true;
+  var userCanRequestExclusive = !!uiContext.canRequestExclusive;
 
   function escapeHtml(value) {
     return String(value === null || value === undefined ? '' : value)
@@ -853,7 +899,6 @@
     if (score === null || score === undefined || isNaN(Number(score))) {
       return '#8d97a6';
     }
-
     var hue = Math.max(0, Math.min(120, (Number(score) / 100) * 120));
     return 'hsl(' + hue + ', 75%, 45%)';
   }
@@ -887,14 +932,13 @@
 
   function getMachineHealthStats(machine) {
     var stats = {
-      total: getMachineInstances(machine).length,
       healthy: 0,
       stale: 0,
       issues: 0,
       noData: 0,
-      averageScore: null
+      bestScore: null,
+      reportingNodes: 0
     };
-    var scoredNodes = [];
 
     getMachineInstances(machine).forEach(function(machineInstance) {
       var snapshot = nodeHealth[machineInstance.instance_id];
@@ -902,6 +946,7 @@
         stats.noData += 1;
         return;
       }
+
       if (snapshot.stale) {
         stats.stale += 1;
       } else if (!snapshot.healthy) {
@@ -909,64 +954,45 @@
       } else {
         stats.healthy += 1;
       }
+
       if (snapshot.fitness_score !== null && snapshot.fitness_score !== undefined) {
-        scoredNodes.push(Number(snapshot.fitness_score));
+        stats.reportingNodes += 1;
+        if (stats.bestScore === null || Number(snapshot.fitness_score) > stats.bestScore) {
+          stats.bestScore = Number(snapshot.fitness_score);
+        }
       }
     });
-
-    if (scoredNodes.length > 0) {
-      var totalScore = scoredNodes.reduce(function(sum, score) {
-        return sum + score;
-      }, 0);
-      stats.averageScore = Math.round((totalScore / scoredNodes.length) * 10) / 10;
-    }
 
     return stats;
   }
 
-  function buildHealthTooltip(machineInstance, snapshot) {
-    if (!snapshot) {
-      return displayHostname(machineInstance) + '\nNo cached health data yet.';
+  function getMachineGpuText(machine) {
+    if (!Array.isArray(machine.gpu) || machine.gpu.length === 0) {
+      return 'Unavailable';
     }
+    return machine.gpu.join(', ');
+  }
 
-    var lines = [];
-    lines.push('Host: ' + displayHostname(machineInstance));
-
-    if (snapshot.fitness_score !== null && snapshot.fitness_score !== undefined) {
-      lines.push('Fitness score: ' + Number(snapshot.fitness_score).toFixed(2));
-    } else {
-      lines.push('Fitness score: n/a');
+  function getMachineCpuText(machine) {
+    if (!machine.cpu_cores) {
+      return machine.cpu_model || 'Unavailable';
     }
+    return machine.cpu_cores + ' cores';
+  }
 
-    lines.push('Status: ' + (snapshot.healthy ? 'healthy' : 'unhealthy') + (snapshot.stale ? ' (stale)' : ''));
-
-    if (snapshot.ram_used_bytes !== null && snapshot.ram_total_bytes !== null) {
-      lines.push('RAM used: ' + bytesToGiB(snapshot.ram_used_bytes) + ' / ' + bytesToGiB(snapshot.ram_total_bytes));
+  function getMachineRamText(machine) {
+    if (!machine.ram) {
+      return 'Unavailable';
     }
+    return machine.ram + ' GB';
+  }
 
-    if (snapshot.cpu_usage_pct !== null && snapshot.cpu_usage_pct !== undefined) {
-      lines.push('CPU usage: ' + formatPercent(snapshot.cpu_usage_pct));
-    } else {
-      lines.push('CPU usage: warming up');
-    }
+  function machineSupportsSharing(machine) {
+    return !!(machine && machine.shared_access_enabled);
+  }
 
-    if (snapshot.gpus && snapshot.gpus.length > 0) {
-      snapshot.gpus.forEach(function(gpu) {
-        lines.push(
-          'GPU ' + gpu.index + ': ' +
-          bytesToGiB(gpu.memory_used_bytes) + ' / ' + bytesToGiB(gpu.memory_total_bytes) +
-          ' used, ' + formatPercent(gpu.utilization_gpu_pct) + ' util'
-        );
-      });
-    } else {
-      lines.push('GPU metrics: unavailable');
-    }
-
-    if (snapshot.last_error) {
-      lines.push('Last error: ' + snapshot.last_error);
-    }
-
-    return lines.join('\n');
+  function isSharingForced(machine) {
+    return machineSupportsSharing(machine) && !userCanRequestExclusive;
   }
 
   function renderMachineCards() {
@@ -979,29 +1005,31 @@
 
     machineCardGrid.innerHTML = filteredMachinesList.map(function(machine, index) {
       var stats = getMachineHealthStats(machine);
-      var scoreLabel = stats.averageScore !== null ? Math.round(stats.averageScore) : 'n/a';
-      var scoreColor = getHealthColorFromScore(stats.averageScore);
-      var gpuSummary = Array.isArray(machine.gpu) && machine.gpu.length > 0 ? machine.gpu.join(', ') : 'GPU info unavailable';
-      var badges = [
-        '<span class="mlhub-badge ' + (machine.shared_access_enabled ? 'is-cyan' : 'is-muted') + '">' + (machine.shared_access_enabled ? 'Shared-capable' : 'Exclusive only') + '</span>',
-        '<span class="mlhub-badge ' + (machine.privileged_access_required ? 'is-accent' : 'is-muted') + '">' + (machine.privileged_access_required ? 'Privileged' : 'Standard access') + '</span>'
-      ].join('');
-
+      var bestScoreText = stats.bestScore !== null ? Math.round(stats.bestScore) : 'n/a';
+      var scoreColor = getHealthColorFromScore(stats.bestScore);
+      var machineBadges = machine.privileged_access_required
+        ? '<div class="machine-card-badges">' +
+            '<span class="mlhub-badge is-accent">Privileged</span>' +
+          '</div>'
+        : '';
       return '' +
         '<button type="button" class="machine-card ' + (index === selectedMachineIndex ? 'is-active' : '') + '" data-machine-index="' + index + '">' +
-          '<div class="machine-card-top">' +
+          '<div class="machine-card-head">' +
             '<div>' +
               '<h4 class="machine-card-name">' + escapeHtml(machine.codename || 'Unnamed') + '</h4>' +
+              '<div class="machine-card-subtitle">' + escapeHtml(machine.cpu_model || 'Hardware profile') + '</div>' +
             '</div>' +
-            '<span class="machine-card-score" style="color:' + escapeHtml(scoreColor) + ';">' + escapeHtml(scoreLabel) + '</span>' +
+            '<div class="machine-card-health">' +
+              '<span class="machine-card-health-dot" style="background:' + escapeHtml(scoreColor) + ';"></span>' +
+              '<span>Best health: ' + escapeHtml(bestScoreText) + '</span>' +
+            '</div>' +
           '</div>' +
-          '<p class="machine-card-subtitle">' + escapeHtml(gpuSummary) + '</p>' +
-          '<div class="machine-card-stats">' +
-            '<div class="machine-card-stat"><span class="machine-card-stat-label">Nodes</span><span class="machine-card-stat-value">' + escapeHtml(machine.total_instances || getMachineInstances(machine).length || 0) + '</span></div>' +
-            '<div class="machine-card-stat"><span class="machine-card-stat-label">RAM</span><span class="machine-card-stat-value">' + escapeHtml(machine.ram || 'n/a') + ' GB</span></div>' +
-            '<div class="machine-card-stat"><span class="machine-card-stat-label">CPU</span><span class="machine-card-stat-value">' + escapeHtml(machine.cpu_cores || 'n/a') + ' cores</span></div>' +
+          '<div class="machine-spec-grid">' +
+            '<div class="machine-spec"><span class="machine-spec-label">GPUs</span><span class="machine-spec-value">' + escapeHtml(getMachineGpuText(machine)) + '</span></div>' +
+            '<div class="machine-spec"><span class="machine-spec-label">CPU</span><span class="machine-spec-value">' + escapeHtml(getMachineCpuText(machine)) + '</span></div>' +
+            '<div class="machine-spec"><span class="machine-spec-label">RAM</span><span class="machine-spec-value">' + escapeHtml(getMachineRamText(machine)) + '</span></div>' +
           '</div>' +
-          '<div class="machine-card-badges">' + badges + '</div>' +
+          machineBadges +
         '</button>';
     }).join('');
 
@@ -1019,143 +1047,171 @@
       return;
     }
 
-    var storageMarkup = Array.isArray(machine.storage) && machine.storage.length > 0
-      ? machine.storage.map(function(storageItem) {
-          return '<span class="storage-chip">' + escapeHtml(storageItem[0]) + ': ' + escapeHtml(storageItem[1]) + ' GB</span>';
-        }).join('')
-      : '<span class="storage-chip">Storage info unavailable</span>';
+    var sharingAvailable = machineSupportsSharing(machine);
+    var sharingForced = isSharingForced(machine);
+    var sharedAccessRequested = sharingAvailable ? (sharingForced ? true : preferredSharedAccessRequested) : false;
+    var sharingMessage = sharingAvailable
+      ? (sharingForced
+          ? 'Your current privileges do not allow exclusive access, so session sharing is required for this launch.'
+          : 'Privileged users can clear this box to hold the selected machine exclusively.')
+      : 'This machine type does not expose shared-session scheduling.';
+    var sharingNoteClass = sharingForced ? ' is-warning' : (sharingAvailable ? '' : ' is-muted');
 
-    var badges = [
-      '<span class="mlhub-badge ' + (machine.shared_access_enabled ? 'is-cyan' : 'is-muted') + '">' + (machine.shared_access_enabled ? 'Shared scheduling supported' : 'Exclusive scheduling only') + '</span>',
-      '<span class="mlhub-badge ' + (machine.privileged_access_required ? 'is-accent' : 'is-muted') + '">' + (machine.privileged_access_required ? 'Requires elevated access' : 'Available to standard users') + '</span>'
-    ].join('');
+    var sessionOptionsMarkup =
+      '<input type="hidden" id="sharedAccessValue" name="sharedAccessValue" value="' + (sharedAccessRequested ? 'true' : 'false') + '">' +
+      '<div id="sessionOptionsCard" class="session-options' + (sharedAccessRequested ? ' is-enabled' : '') + (sharingForced || !sharingAvailable ? ' is-disabled' : '') + '">' +
+        '<label class="share-toggle' + (sharingForced || !sharingAvailable ? ' is-disabled' : '') + '" for="sharedAccess">' +
+          '<input class="form-check-input" type="checkbox" id="sharedAccess"' + (sharedAccessRequested ? ' checked' : '') + (sharingForced || !sharingAvailable ? ' disabled' : '') + '>' +
+          '<span>' +
+            '<span class="share-toggle-title">Allow session sharing</span>' +
+            '<span class="share-toggle-copy">' + escapeHtml(sharingAvailable
+              ? 'Keep this enabled if you are fine sharing the selected machine with another active session.'
+              : 'Shared session placement is not available for this machine type.') + '</span>' +
+          '</span>' +
+        '</label>' +
+        '<div class="session-note' + sharingNoteClass + '"><strong>Note:</strong> ' + escapeHtml(sharingMessage) + '</div>' +
+      '</div>';
 
     detailsDiv.innerHTML =
       '<div class="mlhub-card-header">' +
         '<div>' +
-          '<h3 class="mlhub-card-title">Selected Profile</h3>' +
-          '<p class="mlhub-card-copy">Current selection synced to the spawn form.</p>' +
+          '<h3 class="mlhub-card-title">Allow session sharing</h3>' +
+          '<p class="mlhub-card-copy">Session sharing is enabled by default so users do not request exclusive nodes by mistake.</p>' +
         '</div>' +
-        '<span class="mlhub-card-tag">Ready</span>' +
+        '<span class="mlhub-card-tag">Session policy</span>' +
       '</div>' +
-      '<h4 class="selected-machine-title">' + escapeHtml(machine.codename || 'Unnamed') + '</h4>' +
-      '<p class="selected-machine-subtitle">' + escapeHtml(machine.cpu_model || 'CPU model unavailable') + '</p>' +
-      '<div class="machine-card-badges" style="margin-top: 14px;">' + badges + '</div>' +
-      '<div class="selected-machine-stats">' +
-        '<div class="selected-machine-stat"><span class="selected-machine-stat-label">Instances</span><span class="selected-machine-stat-value">' + escapeHtml(machine.total_instances || getMachineInstances(machine).length || 0) + '</span></div>' +
-        '<div class="selected-machine-stat"><span class="selected-machine-stat-label">CPU Cores</span><span class="selected-machine-stat-value">' + escapeHtml(machine.cpu_cores || 'n/a') + '</span></div>' +
-        '<div class="selected-machine-stat"><span class="selected-machine-stat-label">RAM</span><span class="selected-machine-stat-value">' + escapeHtml(machine.ram || 'n/a') + ' GB</span></div>' +
-        '<div class="selected-machine-stat"><span class="selected-machine-stat-label">GPUs</span><span class="selected-machine-stat-value">' + escapeHtml(Array.isArray(machine.gpu) && machine.gpu.length > 0 ? machine.gpu.join(', ') : 'Unavailable') + '</span></div>' +
-      '</div>' +
-      '<div class="selected-machine-storage">' +
-        '<span class="selected-machine-stat-label">Storage</span>' +
-        '<div class="storage-list">' + storageMarkup + '</div>' +
-      '</div>';
+      '<p class="mlhub-card-copy">Selected machine type: ' + escapeHtml(machine.codename || 'Unnamed') + '.</p>' +
+      sessionOptionsMarkup;
+
+    var sharedAccess = document.getElementById('sharedAccess');
+    if (sharedAccess) {
+      sharedAccess.addEventListener('change', function() {
+        preferredSharedAccessRequested = !!(sharedAccess.checked && !sharedAccess.disabled);
+        renderSharingState();
+      });
+    }
+    renderSharingState();
   }
 
-  function renderHealthSummary(machine) {
-    var summaryDiv = document.getElementById('machineHealthSummary');
-    if (!machine) {
-      summaryDiv.innerHTML = '<div class="health-empty">No health summary available.</div>';
-      return;
+  function buildNodeDetails(snapshot) {
+    if (!snapshot) {
+      return '<div class="health-empty">No cached data yet for this node.</div>';
     }
 
-    var stats = getMachineHealthStats(machine);
-    var scoreLabel = stats.averageScore !== null ? Math.round(stats.averageScore) : 'n/a';
-    var scoreColor = getHealthColorFromScore(stats.averageScore);
+    var cpuText = snapshot.cpu_usage_pct !== null && snapshot.cpu_usage_pct !== undefined
+      ? formatPercent(snapshot.cpu_usage_pct)
+      : 'warming up';
+    var ramText = snapshot.ram_used_bytes !== null && snapshot.ram_total_bytes !== null
+      ? bytesToGiB(snapshot.ram_used_bytes) + ' / ' + bytesToGiB(snapshot.ram_total_bytes)
+      : 'n/a';
+    var fitnessText = snapshot.fitness_score !== null && snapshot.fitness_score !== undefined
+      ? Number(snapshot.fitness_score).toFixed(1)
+      : 'n/a';
+    var gpuInfo = Array.isArray(snapshot.gpus) && snapshot.gpus.length > 0
+      ? snapshot.gpus.map(function(gpu) {
+          return '' +
+            '<div class="health-gpu-item">' +
+              '<div class="health-gpu-title">GPU ' + escapeHtml(gpu.index) + '</div>' +
+              '<div class="health-gpu-copy">' +
+                'VRAM: ' + escapeHtml(bytesToGiB(gpu.memory_used_bytes)) + ' / ' + escapeHtml(bytesToGiB(gpu.memory_total_bytes)) + '<br>' +
+                'Utilization: ' + escapeHtml(formatPercent(gpu.utilization_gpu_pct)) +
+              '</div>' +
+            '</div>';
+        }).join('')
+      : '<div class="health-empty">GPU metrics unavailable.</div>';
 
-    summaryDiv.innerHTML =
-      '<div class="mlhub-card-header">' +
-        '<div>' +
-          '<h3 class="mlhub-card-title">Cluster Signal</h3>' +
-          '<p class="mlhub-card-copy">Snapshot for the currently selected profile.</p>' +
-        '</div>' +
-        '<span class="mlhub-card-tag">Live cache</span>' +
+    var errorMarkup = snapshot.last_error
+      ? '<div class="health-error"><strong>Last error:</strong> ' + escapeHtml(snapshot.last_error) + '</div>'
+      : '';
+
+    return '' +
+      '<div class="health-detail-grid">' +
+        '<div class="health-detail-card"><span class="health-detail-label">Fitness</span><span class="health-detail-value">' + escapeHtml(fitnessText) + '</span></div>' +
+        '<div class="health-detail-card"><span class="health-detail-label">RAM used</span><span class="health-detail-value">' + escapeHtml(ramText) + '</span></div>' +
+        '<div class="health-detail-card"><span class="health-detail-label">CPU usage</span><span class="health-detail-value">' + escapeHtml(cpuText) + '</span></div>' +
       '</div>' +
-      '<div class="health-summary-grid">' +
-        '<div class="health-score-panel">' +
-          '<span class="health-score-label">Average fitness</span>' +
-          '<div class="health-score-value">' +
-            '<span class="health-score-number" style="color:' + escapeHtml(scoreColor) + ';">' + escapeHtml(scoreLabel) + '</span>' +
-            '<span class="health-score-note">Across nodes with live scores for this profile.</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="health-kpis">' +
-          '<div class="health-kpi"><span class="health-kpi-label">Healthy</span><span class="health-kpi-value">' + escapeHtml(stats.healthy) + '</span></div>' +
-          '<div class="health-kpi"><span class="health-kpi-label">Stale</span><span class="health-kpi-value">' + escapeHtml(stats.stale) + '</span></div>' +
-          '<div class="health-kpi"><span class="health-kpi-label">Issues</span><span class="health-kpi-value">' + escapeHtml(stats.issues) + '</span></div>' +
-          '<div class="health-kpi"><span class="health-kpi-label">No data</span><span class="health-kpi-value">' + escapeHtml(stats.noData) + '</span></div>' +
-        '</div>' +
-      '</div>' +
-      '<p class="health-hint">Rows below are interactive. Hover a node to inspect VRAM use, RAM use, GPU utilization, CPU load, and any cached error.</p>';
+      '<div class="health-gpu-list">' + gpuInfo + '</div>' +
+      errorMarkup;
   }
 
   function renderMachineHealthTable(machine) {
     var tableContainer = document.getElementById('machineHealthTable');
-    if (!machine || !machine.instances || machine.instances.length === 0) {
+    if (!machine || getMachineInstances(machine).length === 0) {
       tableContainer.innerHTML = '<div class="health-empty">No machine instances available for this profile.</div>';
       return;
     }
 
-    var rowsHtml = machine.instances.map(function(machineInstance) {
-      var snapshot = nodeHealth[machineInstance.instance_id];
-      var indicatorColor = getHealthColor(snapshot);
-      var indicatorLabel = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined
-        ? Number(snapshot.fitness_score).toFixed(0)
-        : 'n/a';
-      var tooltipText = escapeHtml(buildHealthTooltip(machineInstance, snapshot));
-      var barWidth = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined
-        ? Math.max(8, Math.min(100, Number(snapshot.fitness_score)))
-        : 8;
-      var statusMeta = getStatusMeta(snapshot);
-      var subtitle = snapshot && snapshot.last_success_at
-        ? 'Telemetry cached'
-        : 'Waiting for telemetry';
-
-      return '' +
-        '<div class="health-row" title="' + tooltipText + '">' +
-          '<div class="health-row-main">' +
-            '<div class="health-row-host">' + escapeHtml(displayHostname(machineInstance)) + '</div>' +
-            '<div class="health-row-subtitle">' + escapeHtml(subtitle) + '</div>' +
-            '<div class="health-bar"><div class="health-bar-fill" style="width:' + escapeHtml(barWidth) + '%; background:' + escapeHtml(indicatorColor) + ';"></div></div>' +
-          '</div>' +
-          '<div class="health-row-meta">' +
-            '<span class="health-status-pill ' + escapeHtml(statusMeta.className) + '">' + escapeHtml(statusMeta.label) + '</span>' +
-            '<span class="health-score-inline" style="color:' + escapeHtml(indicatorColor) + ';">' + escapeHtml(indicatorLabel) + '</span>' +
-          '</div>' +
-        '</div>';
-    }).join('');
-
-    tableContainer.innerHTML = '<div class="health-list">' + rowsHtml + '</div>';
-  }
-
-  function renderSharingCard() {
-    var sharedAccess = document.getElementById('sharedAccess');
-    var sharingCard = document.getElementById('sharingCard');
-    if (!sharedAccess || !sharingCard) {
-      return;
+    if (expandedHealthInstanceId && !nodeHealth[expandedHealthInstanceId] && !getMachineInstances(machine).some(function(instance) { return instance.instance_id === expandedHealthInstanceId; })) {
+      expandedHealthInstanceId = null;
     }
 
-    sharingCard.classList.toggle('is-enabled', sharedAccess.checked);
+    tableContainer.innerHTML =
+      '<div class="health-list">' +
+      getMachineInstances(machine).map(function(machineInstance) {
+        var snapshot = nodeHealth[machineInstance.instance_id];
+        var score = snapshot && snapshot.fitness_score !== null && snapshot.fitness_score !== undefined ? Number(snapshot.fitness_score) : null;
+        var scoreText = score !== null ? Math.round(score) : 'n/a';
+        var barWidth = score !== null ? Math.max(8, Math.min(100, score)) : 8;
+        var color = getHealthColor(snapshot);
+        var statusMeta = getStatusMeta(snapshot);
+        var isOpen = expandedHealthInstanceId === machineInstance.instance_id;
+        var subtitle = snapshot
+          ? (snapshot.healthy && !snapshot.stale ? 'Click to inspect current load' : 'Click for details')
+          : 'Click to inspect node details';
+
+        return '' +
+          '<div class="health-item ' + (isOpen ? 'is-open' : '') + '">' +
+            '<button type="button" class="health-trigger" data-instance-id="' + escapeHtml(machineInstance.instance_id) + '" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
+              '<div class="health-main">' +
+                '<div class="health-host">' + escapeHtml(displayHostname(machineInstance)) + '</div>' +
+                '<div class="health-subtitle">' + escapeHtml(subtitle) + '</div>' +
+                '<div class="health-bar"><div class="health-bar-fill" style="width:' + escapeHtml(barWidth) + '%; background:' + escapeHtml(color) + ';"></div></div>' +
+              '</div>' +
+              '<div class="health-meta">' +
+                '<span class="health-status-pill ' + escapeHtml(statusMeta.className) + '">' + escapeHtml(statusMeta.label) + '</span>' +
+                '<span class="health-score-inline" style="color:' + escapeHtml(color) + ';">' + escapeHtml(scoreText) + '</span>' +
+                '<span class="health-chevron">&#8250;</span>' +
+              '</div>' +
+            '</button>' +
+            '<div class="health-detail">' + buildNodeDetails(snapshot) + '</div>' +
+          '</div>';
+      }).join('') +
+      '</div>';
+
+    Array.prototype.forEach.call(tableContainer.querySelectorAll('.health-trigger'), function(button) {
+      button.addEventListener('click', function() {
+        var instanceId = button.getAttribute('data-instance-id');
+        expandedHealthInstanceId = expandedHealthInstanceId === instanceId ? null : instanceId;
+        renderMachineHealthTable(filteredMachinesList[selectedMachineIndex]);
+      });
+    });
+  }
+
+  function renderSharingState() {
+    var sharedAccess = document.getElementById('sharedAccess');
+    var sharedAccessValue = document.getElementById('sharedAccessValue');
+    var sessionOptionsCard = document.getElementById('sessionOptionsCard');
+    if (!sharedAccess || !sharedAccessValue || !sessionOptionsCard) {
+      return;
+    }
+    sharedAccessValue.value = sharedAccess.checked ? 'true' : 'false';
+    sessionOptionsCard.classList.toggle('is-enabled', sharedAccess.checked);
+    sessionOptionsCard.classList.toggle('is-disabled', sharedAccess.disabled);
   }
 
   function renderSelectedMachine() {
     var machine = filteredMachinesList[selectedMachineIndex];
-    if (!machine) {
-      document.getElementById('machineDetails').innerHTML = '<div class="health-empty">No machines available.</div>';
-      document.getElementById('machineHealthSummary').innerHTML = '<div class="health-empty">No health summary available.</div>';
-      document.getElementById('machineHealthTable').innerHTML = '<div class="health-empty">No health data available.</div>';
-      return;
-    }
-
     renderMachineCards();
     renderMachineDetails(machine);
-    renderHealthSummary(machine);
     renderMachineHealthTable(machine);
   }
 
   function setSelectedMachine(index) {
+    if (filteredMachinesList.length === 0) {
+      return;
+    }
     selectedMachineIndex = Math.max(0, Math.min(filteredMachinesList.length - 1, Number(index) || 0));
+    expandedHealthInstanceId = null;
     document.getElementById('machineSelect').value = String(selectedMachineIndex);
     renderSelectedMachine();
   }
@@ -1171,7 +1227,9 @@
       opt.value = '';
       opt.disabled = true;
       machineSelect.appendChild(opt);
-      renderSelectedMachine();
+      document.getElementById('machineCardGrid').innerHTML = '<div class="health-empty">No machine profiles are available for your account.</div>';
+      document.getElementById('machineDetails').innerHTML = '<div class="health-empty">No machine selected.</div>';
+      document.getElementById('machineHealthTable').innerHTML = '<div class="health-empty">No health data available.</div>';
       return;
     }
 
@@ -1188,14 +1246,10 @@
   }
 
   function updateMachineDetails() {
-    var machineSelect = document.getElementById('machineSelect');
-    setSelectedMachine(machineSelect.value);
+    setSelectedMachine(document.getElementById('machineSelect').value);
   }
 
-  document.getElementById('sharedAccess').addEventListener('change', renderSharingCard);
-
   populateMachineOptions();
-  renderSharingCard();
 
   var hostForm = document.getElementById('machineSelect').form;
   if (hostForm) {

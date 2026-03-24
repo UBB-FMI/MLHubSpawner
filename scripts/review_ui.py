@@ -220,13 +220,16 @@ def load_spawn_ui(driver: webdriver.Chrome, credentials: Credentials, wait_secon
 
 def collect_ui_summary(driver: webdriver.Chrome) -> dict:
     machine_cards = driver.find_elements(By.CSS_SELECTOR, ".machine-card")
-    health_rows = driver.find_elements(By.CSS_SELECTOR, ".health-row")
+    health_rows = driver.find_elements(By.CSS_SELECTOR, ".health-item")
 
     selected_machine = ""
-    try:
-        selected_machine = driver.find_element(By.CSS_SELECTOR, ".selected-machine-title").text.strip()
-    except NoSuchElementException:
-        pass
+    for selector in (".machine-card.is-active .machine-card-name", ".selected-profile-title"):
+        try:
+            selected_machine = driver.find_element(By.CSS_SELECTOR, selector).text.strip()
+            if selected_machine:
+                break
+        except NoSuchElementException:
+            continue
 
     summary = {
         "title": driver.title,

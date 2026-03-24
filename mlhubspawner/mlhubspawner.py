@@ -281,6 +281,9 @@ class MLHubSpawner(Spawner):
         return self.form_builder.get_html_page(
             available_remote_hosts_dictionary,
             self.get_node_health_snapshot_payloads(),
+            {
+                "canRequestExclusive": self.user_privilege_level >= 1,
+            },
         )
 
     # Parse the form data into the correct types. The values here are available in the "start" method as "self.user_options"

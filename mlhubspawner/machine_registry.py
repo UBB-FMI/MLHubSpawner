@@ -37,6 +37,8 @@ class MachineType:
         data["type_id"] = self.type_id
         data["codename"] = self.codename
         data["total_instances"] = self.total_instances()
+        data["shared_access_enabled"] = self.shared_access_enabled
+        data["privileged_access_required"] = self.privileged_access_required
         if include_instances:
             data["instances"] = [machine_instance.to_display_dict() for machine_instance in self.instances]
         return data
