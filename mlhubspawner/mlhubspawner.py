@@ -38,7 +38,7 @@ class MLHubSpawner(Spawner):
     ssh_gateway_public_port = Integer(2222, help="Public SSH gateway port shown on the spawn page.").tag(config=True)
     ssh_gateway_control_host = Unicode("", help="SSH gateway control host used by MLHubSpawner.").tag(config=True)
     ssh_gateway_control_port = Integer(2223, help="SSH gateway control port used by MLHubSpawner.").tag(config=True)
-    ssh_gateway_shared_secret = Unicode("", help="Shared secret for the SSH gateway control channel.").tag(config=True, private_info=True)
+    ssh_gateway_shared_secret = Unicode("", help="Shared secret used to encrypt and authenticate the SSH gateway control channel.").tag(config=True, private_info=True)
     ssh_gateway_control_timeout = Integer(5, help="Timeout in seconds for SSH gateway control requests.").tag(config=True)
 
     # Class-level MachineManager for load balancing

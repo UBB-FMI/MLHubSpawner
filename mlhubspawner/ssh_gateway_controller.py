@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import random
 import string
 from threading import RLock
+
+from .control_crypto import ControlCryptoError, EncryptedControlCodec
 
 
 PASSWORD_ALPHABET = string.ascii_letters
@@ -38,6 +39,7 @@ class SSHGatewayController:
         self.control_port = int(control_port)
         self.shared_secret = shared_secret
         self.control_timeout = max(1, int(control_timeout))
+        self._codec = EncryptedControlCodec(shared_secret) if shared_secret else None
 
     def generate_password(self, username: str) -> str:
         password = "".join(_RANDOM.choice(PASSWORD_ALPHABET) for _ in range(PASSWORD_LENGTH))
@@ -87,6 +89,8 @@ class SSHGatewayController:
             raise SSHGatewayControllerError("ssh_gateway_control_host is not configured")
         if not self.shared_secret:
             raise SSHGatewayControllerError("ssh_gateway_shared_secret is not configured")
+        if self._codec is None:
+            raise SSHGatewayControllerError("ssh_gateway_shared_secret is not configured")
 
         message = dict(payload)
         message["secret"] = self.shared_secret
@@ -97,7 +101,7 @@ class SSHGatewayController:
                 asyncio.open_connection(self.control_host, self.control_port),
                 timeout=self.control_timeout,
             )
-            writer.write((json.dumps(message) + "\n").encode("utf-8"))
+            writer.write(self._codec.encode(message))
             await asyncio.wait_for(writer.drain(), timeout=self.control_timeout)
             raw_response = await asyncio.wait_for(reader.readline(), timeout=self.control_timeout)
         except Exception as exc:
@@ -111,9 +115,12 @@ class SSHGatewayController:
             raise SSHGatewayControllerError("SSH gateway control channel returned no response")
 
         try:
-            response = json.loads(raw_response.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise SSHGatewayControllerError(f"invalid SSH gateway response: {exc}") from exc
+            response = self._codec.decode(raw_response)
+        except ControlCryptoError:
+            try:
+                response = EncryptedControlCodec.decode_plaintext(raw_response, description="SSH gateway response")
+            except ControlCryptoError as exc:
+                raise SSHGatewayControllerError(f"invalid SSH gateway response: {exc}") from exc
 
         if not isinstance(response, dict) or not response.get("ok"):
             error_message = "unknown error"

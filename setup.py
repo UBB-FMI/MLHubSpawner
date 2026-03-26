@@ -17,6 +17,7 @@ setup_args = dict(
     platforms="Linux",
     install_requires=[
         "asyncssh",
+        "cryptography>=46",
         "jupyterhub",
         "ldap3",
     ],

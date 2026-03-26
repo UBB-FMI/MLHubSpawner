@@ -1,3 +1,4 @@
 asyncssh
+cryptography>=46
 jupyterhub
 ldap3
