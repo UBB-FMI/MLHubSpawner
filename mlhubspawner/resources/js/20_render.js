@@ -281,6 +281,78 @@ function renderLaunchSummaryCard(machine) {
     '<div class="launch-summary-copy">The launch target is currently selected from the visible nodes for this machine profile.' + escapeHtml(availabilityCopy) + '</div>';
 }
 
+function getMaskedSshGatewayPassword(password) {
+  return password ? new Array(String(password).length + 1).join('\u2022') : 'Unavailable';
+}
+
+function renderSshGatewayCard() {
+  var container = document.getElementById('sshGatewayCard');
+  var gatewayHost;
+  var gatewayPort;
+  var gatewayUsername;
+  var gatewayPassword;
+  var passwordDisplay;
+  var toggleLabel;
+
+  if (!container) {
+    return;
+  }
+
+  gatewayHost = sshGatewayContext.host || '';
+  gatewayPort = sshGatewayContext.port || '';
+  gatewayUsername = sshGatewayContext.username || '';
+  gatewayPassword = sshGatewayContext.password || '';
+
+  if (!gatewayUsername || !gatewayPassword || !gatewayHost || !gatewayPort) {
+    container.innerHTML =
+      '<div class="health-empty">SSH gateway details are unavailable for this launch.</div>' +
+      '<input type="hidden" name="sshGatewayPassword" value="' + escapeHtml(gatewayPassword) + '">';
+    return;
+  }
+
+  passwordDisplay = sshGatewayPasswordVisible ? gatewayPassword : getMaskedSshGatewayPassword(gatewayPassword);
+  toggleLabel = sshGatewayPasswordVisible ? 'Hide' : 'View';
+
+  container.innerHTML =
+    '<input type="hidden" name="sshGatewayPassword" value="' + escapeHtml(gatewayPassword) + '">' +
+    '<div class="mlhub-card-header">' +
+      '<div>' +
+        '<div class="mlhub-card-tag">SSH Gateway</div>' +
+        '<h3 class="mlhub-card-title">SSH access for this notebook machine</h3>' +
+        '<p class="mlhub-card-copy">Use this gateway to reach the machine hosting your notebook over SSH after the launch completes.</p>' +
+      '</div>' +
+    '</div>' +
+    '<div class="ssh-gateway-grid">' +
+      '<div class="ssh-gateway-field">' +
+        '<div class="ssh-gateway-label">Gateway host</div>' +
+        '<div class="ssh-gateway-value">' + escapeHtml(gatewayHost) + '</div>' +
+      '</div>' +
+      '<div class="ssh-gateway-field">' +
+        '<div class="ssh-gateway-label">Gateway port</div>' +
+        '<div class="ssh-gateway-value">' + escapeHtml(gatewayPort) + '</div>' +
+      '</div>' +
+      '<div class="ssh-gateway-field">' +
+        '<div class="ssh-gateway-label">Username</div>' +
+        '<div class="ssh-gateway-value">' + escapeHtml(gatewayUsername) + '</div>' +
+      '</div>' +
+      '<div class="ssh-gateway-field is-password">' +
+        '<div class="ssh-gateway-label">Password</div>' +
+        '<div class="ssh-gateway-password-row">' +
+          '<div class="ssh-gateway-password-box">' + escapeHtml(passwordDisplay) + '</div>' +
+          '<button type="button" class="ssh-gateway-toggle" data-ssh-password-toggle="true">' + escapeHtml(toggleLabel) + '</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="ssh-gateway-help">The password refreshes every time this form is loaded. The password submitted with the launch is the one that becomes active.</div>';
+
+  Array.prototype.forEach.call(container.querySelectorAll('[data-ssh-password-toggle]'), function(button) {
+    button.addEventListener('click', function() {
+      sshGatewayPasswordVisible = !sshGatewayPasswordVisible;
+      renderSshGatewayCard();
+    });
+  });
+}
+
 function buildNodeHistoryMetricOptions(machineInstance) {
   var selectedMetric = getSelectedHistoryMetric(machineInstance.instance_id);
   var metricOptions = [
@@ -488,6 +560,7 @@ function renderSharingState() {
 function renderSelectedMachine() {
   var machine = filteredMachinesList[selectedMachineIndex];
   syncSelectedMachineInstance(machine);
+  renderSshGatewayCard();
   renderMachineCards();
   renderMachineDetails(machine);
   renderLaunchSummaryCard(machine);
@@ -552,6 +625,7 @@ function revealSelectableNode(machine) {
 function initializeMachineForm() {
   var hostForm;
   populateMachineOptions();
+  renderSshGatewayCard();
 
   hostForm = document.getElementById('machineSelect').form;
   if (hostForm) {

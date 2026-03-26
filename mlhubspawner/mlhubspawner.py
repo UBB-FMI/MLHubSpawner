@@ -14,6 +14,7 @@ from .machine_manager import MachineManager
 from .machine_registry import MachineInstance, MachineRegistry
 from .node_health_monitor import NodeHealthMonitor
 from .notebook_manager import NotebookManager
+from .ssh_gateway_controller import SSHGatewayController
 from .user_manager import UserManager
 
 # Python imports
@@ -33,6 +34,12 @@ class MLHubSpawner(Spawner):
     ldap_home_prefix = Unicode("/bigdata", help="Prefix used when building LDAP homeDirectory values.").tag(config=True)
     ldap_students_gid = Integer(20000, help="gidNumber assigned to student notebook users.").tag(config=True)
     ldap_teachers_gid = Integer(20001, help="gidNumber assigned to teacher notebook users.").tag(config=True)
+    ssh_gateway_public_host = Unicode("", help="Public SSH gateway host shown on the spawn page.").tag(config=True)
+    ssh_gateway_public_port = Integer(2222, help="Public SSH gateway port shown on the spawn page.").tag(config=True)
+    ssh_gateway_control_host = Unicode("", help="SSH gateway control host used by MLHubSpawner.").tag(config=True)
+    ssh_gateway_control_port = Integer(2223, help="SSH gateway control port used by MLHubSpawner.").tag(config=True)
+    ssh_gateway_shared_secret = Unicode("", help="Shared secret for the SSH gateway control channel.").tag(config=True, private_info=True)
+    ssh_gateway_control_timeout = Integer(5, help="Timeout in seconds for SSH gateway control requests.").tag(config=True)
 
     # Class-level MachineManager for load balancing
     _machine_manager = None
@@ -92,6 +99,15 @@ class MLHubSpawner(Spawner):
             ldap_teachers_gid=self.ldap_teachers_gid,
         )
         self.notebook_manager = NotebookManager(self.log,"jupyterhub-singleuser --config=~/.jupyter/jupyter_notebook_config.py --ip 0.0.0.0", self.user_safe_username)
+        self.ssh_gateway_controller = SSHGatewayController(
+            self.log,
+            public_host=self.ssh_gateway_public_host,
+            public_port=self.ssh_gateway_public_port,
+            control_host=self.ssh_gateway_control_host,
+            control_port=self.ssh_gateway_control_port,
+            shared_secret=self.ssh_gateway_shared_secret,
+            control_timeout=self.ssh_gateway_control_timeout,
+        )
 
         self.state_pid = 0
         self.state_hostname = None
@@ -253,6 +269,27 @@ class MLHubSpawner(Spawner):
             self.state_notebook_port = notebook_port
             self.state_pid = notebook_pid
 
+            ssh_gateway_password = self.user_options.get("sshGatewayPassword")
+            if not ssh_gateway_password:
+                self.__slowError("The SSH gateway password is missing. Please return to the spawn page and try again.")
+
+            try:
+                await self.ssh_gateway_controller.register_session(
+                    self.user_safe_username,
+                    ssh_gateway_password,
+                    selected_machine_instance.hostname,
+                    selected_machine_instance.ssh_port,
+                )
+            except Exception as exc:
+                self.log.exception("Failed to register SSH gateway mapping for %s: %s", self.user_safe_username, exc)
+                try:
+                    await self.notebook_manager.kill_notebook()
+                except Exception as kill_exc:
+                    self.log.warning("Failed to clean up notebook after SSH gateway registration failure: %s", kill_exc)
+                self.__slowError(
+                    "We launched your notebook, but the SSH gateway could not be configured. Please try again."
+                )
+
             return (host_ip, notebook_port)
         except Exception:
             self._release_reserved_machine_allocation("spawn failed before the server became ready")
@@ -270,6 +307,7 @@ class MLHubSpawner(Spawner):
         #=== NOTEBOOK DEAD ===
         notebook_alive = await self.notebook_manager.check_notebook_alive()
         if not notebook_alive:
+            await self._unregister_ssh_gateway("notebook process is no longer alive during poll")
             self._release_reserved_machine_allocation("notebook process is no longer alive during poll")
             self.clear_state()
             return 0
@@ -282,6 +320,7 @@ class MLHubSpawner(Spawner):
             #=== KILL THE NOTEBOOK ===
             await self.notebook_manager.kill_notebook()
         finally:
+            await self._unregister_ssh_gateway("server stop requested")
             self._release_reserved_machine_allocation("server stop requested")
             self.clear_state()
 
@@ -311,6 +350,7 @@ class MLHubSpawner(Spawner):
     # Build a fresh HTML snippet for the spawn page request.
     def _build_options_form(self):
         available_remote_hosts = self.__class__._machine_manager.get_available_types(self.user_privilege_level)
+        self.ssh_gateway_controller.generate_password(self.user_safe_username)
 
         self.machine_offers[self.user_unique_identifier] = available_remote_hosts
 
@@ -324,6 +364,7 @@ class MLHubSpawner(Spawner):
             nodeHealthSnapshots=self.get_node_health_snapshot_payloads(),
             uiContext={
                 "canRequestExclusive": self.user_privilege_level >= 1,
+                "sshGateway": self.ssh_gateway_controller.build_ui_context(self.user_safe_username),
             },
             nodeHealthHistory=self.get_node_health_snapshot_history_payloads(),
         )
@@ -331,3 +372,10 @@ class MLHubSpawner(Spawner):
     # Parse the form data into the correct types. The values here are available in the "start" method as "self.user_options"
     def options_from_form(self, formdata):
         return self.form_builder.get_form_options(formdata)
+
+    async def _unregister_ssh_gateway(self, reason: str):
+        try:
+            await self.ssh_gateway_controller.unregister_session(self.user_safe_username)
+            self.log.info("Unregistered SSH gateway mapping for %s. Reason: %s", self.user_safe_username, reason)
+        except Exception as exc:
+            self.log.warning("Failed to unregister SSH gateway mapping for %s: %s", self.user_safe_username, exc)

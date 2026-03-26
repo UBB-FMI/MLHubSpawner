@@ -3,6 +3,7 @@ var machines = formPayload.machines || [];
 var nodeHealth = formPayload.nodeHealth || {};
 var uiContext = formPayload.uiContext || {};
 var nodeHealthHistory = formPayload.nodeHealthHistory || {};
+var sshGatewayContext = uiContext.sshGateway || {};
 var filteredMachinesList = machines;
 var selectedMachineIndex = 0;
 var expandedHealthInstanceId = null;
@@ -10,6 +11,7 @@ var preferredSharedAccessRequested = true;
 var userCanRequestExclusive = !!uiContext.canRequestExclusive;
 var selectedMachineInstanceId = null;
 var selectedHistoryMetricByInstanceId = {};
+var sshGatewayPasswordVisible = false;
 
 function escapeHtml(value) {
   return String(value === null || value === undefined ? '' : value)
