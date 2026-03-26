@@ -86,6 +86,4 @@ class JupyterFormBuilder():
         options['sharedAccess'] = self._parse_bool(shared_access_value, True)
         machine_instance_id = self._safe_fetch(formdata, 'machineInstanceId', None)
         options['machineInstanceId'] = machine_instance_id if machine_instance_id else None
-        ssh_gateway_password = self._safe_fetch(formdata, 'sshGatewayPassword', None)
-        options['sshGatewayPassword'] = ssh_gateway_password if ssh_gateway_password else None
         return options

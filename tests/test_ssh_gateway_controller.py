@@ -45,7 +45,7 @@ def test_build_ui_context_falls_back_to_control_host() -> None:
     assert context["port"] == 2222
 
 
-def test_form_builder_captures_ssh_gateway_password() -> None:
+def test_form_builder_does_not_capture_ssh_gateway_password() -> None:
     form_builder = JupyterFormBuilder()
 
     options = form_builder.get_form_options(
@@ -57,7 +57,7 @@ def test_form_builder_captures_ssh_gateway_password() -> None:
         }
     )
 
-    assert options["sshGatewayPassword"] == "OnlyLettersPasswordOnlyLettersAB"
+    assert "sshGatewayPassword" not in options
 
 
 def test_form_builder_embeds_ssh_gateway_context() -> None:

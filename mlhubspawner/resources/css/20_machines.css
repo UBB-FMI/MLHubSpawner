@@ -276,6 +276,96 @@
   color: var(--mlhub-muted);
 }
 
+.ssh-gateway-panel {
+  margin-top: 18px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ssh-gateway-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+}
+
+.ssh-gateway-row + .ssh-gateway-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ssh-gateway-row-copy {
+  min-width: 0;
+}
+
+.ssh-gateway-value-block {
+  width: 100%;
+  color: #e9f1f8;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 18, 24, 0.72);
+  overflow-wrap: anywhere;
+}
+
+.ssh-gateway-password-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.ssh-gateway-password-box {
+  flex: 1 1 auto;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 18, 24, 0.72);
+  color: #f3f7fb;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+
+.ssh-gateway-toggle {
+  min-width: 88px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #edf3f8;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.ssh-gateway-toggle:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.ssh-gateway-note {
+  margin-top: 14px;
+}
+
+.ssh-gateway-note a {
+  color: #9dd9ff;
+  text-decoration: underline;
+}
+
 .launch-summary-card .health-empty {
   margin: 0;
 }
@@ -343,6 +433,11 @@
 }
 
 @media (max-width: 720px) {
+  .ssh-gateway-password-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .launch-summary-grid {
     grid-template-columns: 1fr;
   }

@@ -261,95 +261,10 @@
 
 .ssh-gateway-card {
   margin-top: 22px;
-  border-color: rgba(79, 209, 197, 0.2);
-  background:
-    radial-gradient(circle at top right, rgba(79, 209, 197, 0.14), transparent 34%),
-    radial-gradient(circle at bottom left, rgba(255, 122, 26, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(17, 26, 33, 0.96), rgba(15, 22, 29, 0.98));
 }
 
-.ssh-gateway-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.ssh-gateway-field {
-  padding: 15px 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.ssh-gateway-field.is-password {
-  grid-column: span 2;
-}
-
-.ssh-gateway-label {
-  color: var(--mlhub-muted);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ssh-gateway-value {
-  margin-top: 8px;
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.4;
-  word-break: break-word;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-}
-
-.ssh-gateway-password-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.ssh-gateway-password-box {
-  flex: 1 1 auto;
-  min-height: 50px;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(79, 209, 197, 0.18);
-  background: rgba(9, 16, 22, 0.82);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  overflow-wrap: anywhere;
-}
-
-.ssh-gateway-toggle {
-  min-width: 92px;
-  min-height: 50px;
-  padding: 0 16px;
-  border: 1px solid rgba(255, 148, 71, 0.24);
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(255, 122, 26, 0.22), rgba(79, 209, 197, 0.18));
-  color: #f6fbff;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 120ms ease, border-color 120ms ease, filter 120ms ease;
-}
-
-.ssh-gateway-toggle:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 183, 132, 0.36);
-  filter: brightness(1.06);
-}
-
-.ssh-gateway-help {
-  margin-top: 16px;
-  color: #c6d3de;
-  line-height: 1.6;
+.ssh-gateway-card .health-empty {
+  margin: 0;
 }
 
 .mlhub-submit-button:hover {

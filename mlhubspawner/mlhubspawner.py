@@ -190,6 +190,14 @@ class MLHubSpawner(Spawner):
         finally:
             machine_manager_lock.release()
 
+    #==== SSH GATEWAY HELPERS ====
+    async def _unregister_ssh_gateway(self, reason: str):
+        try:
+            await self.ssh_gateway_controller.unregister_session(self.user_safe_username)
+            self.log.info("Unregistered SSH gateway mapping for %s. Reason: %s", self.user_safe_username, reason)
+        except Exception as exc:
+            self.log.warning("Failed to unregister SSH gateway mapping for %s: %s", self.user_safe_username, exc)
+
     async def start(self):
         selected_machine_index = self.user_options['machineSelect']
         shared_access_enabled = self.user_options['sharedAccess']
@@ -269,9 +277,9 @@ class MLHubSpawner(Spawner):
             self.state_notebook_port = notebook_port
             self.state_pid = notebook_pid
 
-            ssh_gateway_password = self.user_options.get("sshGatewayPassword")
+            ssh_gateway_password = self.ssh_gateway_controller.get_password(self.user_safe_username)
             if not ssh_gateway_password:
-                self.__slowError("The SSH gateway password is missing. Please return to the spawn page and try again.")
+                self.__slowError("The SSH gateway password is no longer available. Please return to the spawn page and try again.")
 
             try:
                 await self.ssh_gateway_controller.register_session(
@@ -372,10 +380,3 @@ class MLHubSpawner(Spawner):
     # Parse the form data into the correct types. The values here are available in the "start" method as "self.user_options"
     def options_from_form(self, formdata):
         return self.form_builder.get_form_options(formdata)
-
-    async def _unregister_ssh_gateway(self, reason: str):
-        try:
-            await self.ssh_gateway_controller.unregister_session(self.user_safe_username)
-            self.log.info("Unregistered SSH gateway mapping for %s. Reason: %s", self.user_safe_username, reason)
-        except Exception as exc:
-            self.log.warning("Failed to unregister SSH gateway mapping for %s: %s", self.user_safe_username, exc)

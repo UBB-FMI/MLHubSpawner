@@ -293,6 +293,7 @@ function renderSshGatewayCard() {
   var gatewayPassword;
   var passwordDisplay;
   var toggleLabel;
+  var vpnGuideUrl = 'https://www.cs.ubbcluj.ro/internal/itmanual/wireguard/wireguard.html';
 
   if (!container) {
     return;
@@ -304,46 +305,49 @@ function renderSshGatewayCard() {
   gatewayPassword = sshGatewayContext.password || '';
 
   if (!gatewayUsername || !gatewayPassword || !gatewayHost || !gatewayPort) {
-    container.innerHTML =
-      '<div class="health-empty">SSH gateway details are unavailable for this launch.</div>' +
-      '<input type="hidden" name="sshGatewayPassword" value="' + escapeHtml(gatewayPassword) + '">';
+    container.classList.remove('is-populated');
+    container.innerHTML = '<div class="health-empty">SSH gateway details are unavailable for this launch.</div>';
     return;
   }
 
   passwordDisplay = sshGatewayPasswordVisible ? gatewayPassword : getMaskedSshGatewayPassword(gatewayPassword);
   toggleLabel = sshGatewayPasswordVisible ? 'Hide' : 'View';
+  container.classList.add('is-populated');
 
   container.innerHTML =
-    '<input type="hidden" name="sshGatewayPassword" value="' + escapeHtml(gatewayPassword) + '">' +
     '<div class="mlhub-card-header">' +
       '<div>' +
-        '<div class="mlhub-card-tag">SSH Gateway</div>' +
-        '<h3 class="mlhub-card-title">SSH access for this notebook machine</h3>' +
-        '<p class="mlhub-card-copy">Use this gateway to reach the machine hosting your notebook over SSH after the launch completes.</p>' +
+        '<h3 class="mlhub-card-title">SSH gateway</h3>' +
+        '<p class="mlhub-card-copy">Use these credentials to reach the machine hosting your notebook over SSH after the launch completes.</p>' +
       '</div>' +
     '</div>' +
-    '<div class="ssh-gateway-grid">' +
-      '<div class="ssh-gateway-field">' +
-        '<div class="ssh-gateway-label">Gateway host</div>' +
-        '<div class="ssh-gateway-value">' + escapeHtml(gatewayHost) + '</div>' +
+    '<div class="session-options is-enabled ssh-gateway-panel">' +
+      '<div class="ssh-gateway-row">' +
+        '<div class="ssh-gateway-row-copy">' +
+          '<span class="share-toggle-title">Gateway endpoint</span>' +
+          '<span class="share-toggle-copy">Connect to the SSH gateway below once your notebook machine is running.</span>' +
+        '</div>' +
+        '<div class="ssh-gateway-value-block">' + escapeHtml(gatewayHost) + ':' + escapeHtml(String(gatewayPort)) + '</div>' +
       '</div>' +
-      '<div class="ssh-gateway-field">' +
-        '<div class="ssh-gateway-label">Gateway port</div>' +
-        '<div class="ssh-gateway-value">' + escapeHtml(gatewayPort) + '</div>' +
+      '<div class="ssh-gateway-row">' +
+        '<div class="ssh-gateway-row-copy">' +
+          '<span class="share-toggle-title">Username</span>' +
+          '<span class="share-toggle-copy">Use your generated safe username when connecting through the gateway.</span>' +
+        '</div>' +
+        '<div class="ssh-gateway-value-block">' + escapeHtml(gatewayUsername) + '</div>' +
       '</div>' +
-      '<div class="ssh-gateway-field">' +
-        '<div class="ssh-gateway-label">Username</div>' +
-        '<div class="ssh-gateway-value">' + escapeHtml(gatewayUsername) + '</div>' +
-      '</div>' +
-      '<div class="ssh-gateway-field is-password">' +
-        '<div class="ssh-gateway-label">Password</div>' +
+      '<div class="ssh-gateway-row is-password">' +
+        '<div class="ssh-gateway-row-copy">' +
+          '<span class="share-toggle-title">Password</span>' +
+          '<span class="share-toggle-copy">A fresh password is generated every time this form loads. The one submitted with this launch becomes active.</span>' +
+        '</div>' +
         '<div class="ssh-gateway-password-row">' +
           '<div class="ssh-gateway-password-box">' + escapeHtml(passwordDisplay) + '</div>' +
           '<button type="button" class="ssh-gateway-toggle" data-ssh-password-toggle="true">' + escapeHtml(toggleLabel) + '</button>' +
         '</div>' +
       '</div>' +
     '</div>' +
-    '<div class="ssh-gateway-help">The password refreshes every time this form is loaded. The password submitted with the launch is the one that becomes active.</div>';
+    '<div class="session-note is-muted ssh-gateway-note"><strong>Note:</strong> This SSH gateway forwards you to the machine selected for this notebook launch. External connections to this gateway might require a VPN. See the <a href="' + vpnGuideUrl + '" target="_blank" rel="noreferrer">WireGuard setup guide</a>.</div>';
 
   Array.prototype.forEach.call(container.querySelectorAll('[data-ssh-password-toggle]'), function(button) {
     button.addEventListener('click', function() {
