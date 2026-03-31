@@ -1,5 +1,9 @@
+import asyncio
 import asyncssh
 import random
+
+NOTEBOOK_ALIVE_CHECK_MAX_ATTEMPTS = 5
+NOTEBOOK_ALIVE_CHECK_RETRY_DELAY_SECONDS = 5
 
 class NotebookManager():
     def __init__(self, logger, launch_command: str, safe_username: str):
@@ -109,24 +113,35 @@ class NotebookManager():
             return False
 
         ssh_key_path = "~/.ssh/id_rsa"
-
         command = f"kill -s 0 {self.pid} < /dev/null"
-        try:
-            async with asyncssh.connect(
-                self.remote_ip,
-                port=self.host_port,
-                username=self.safe_username,
-                client_keys=[ssh_key_path],
-                known_hosts=None,
-                connect_timeout=10
-            ) as conn:
-                result = await conn.run(command)
-            alive = (result.exit_status == 0)
-            self.log.info(f"Check notebook alive: PID {self.pid} is {'alive' if alive else 'dead'} (exit status {result.exit_status}).")
-            return alive
-        except Exception as e:
-            self.log.info(f"Error checking notebook alive: {e}")
-            return False
+
+        for attempt in range(1, NOTEBOOK_ALIVE_CHECK_MAX_ATTEMPTS + 1):
+            try:
+                async with asyncssh.connect(
+                    self.remote_ip,
+                    port=self.host_port,
+                    username=self.safe_username,
+                    client_keys=[ssh_key_path],
+                    known_hosts=None,
+                    connect_timeout=10
+                ) as conn:
+                    result = await conn.run(command)
+                alive = (result.exit_status == 0)
+                self.log.info(
+                    f"Check notebook alive: PID {self.pid} is {'alive' if alive else 'dead'} "
+                    f"(exit status {result.exit_status}) on attempt {attempt}."
+                )
+                return alive
+            except Exception as e:
+                self.log.info(
+                    "Error checking notebook alive on attempt %s/%s: %s",
+                    attempt,
+                    NOTEBOOK_ALIVE_CHECK_MAX_ATTEMPTS,
+                    e,
+                )
+                if attempt == NOTEBOOK_ALIVE_CHECK_MAX_ATTEMPTS:
+                    return False
+                await asyncio.sleep(NOTEBOOK_ALIVE_CHECK_RETRY_DELAY_SECONDS)
 
     async def kill_notebook(self):
         """
